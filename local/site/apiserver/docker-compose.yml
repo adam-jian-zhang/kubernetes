@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  apiserver-docs:
+    build: .
+    container_name: apiserver-docs
+    ports:
+      - "9003:9003"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9003"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

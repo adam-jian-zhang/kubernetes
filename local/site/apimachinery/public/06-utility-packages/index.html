@@ -1,0 +1,414 @@
+<!doctype html><html lang=en><head><meta charset=UTF-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Utility Packages - k8s.io/apimachinery Documentation</title><link rel=stylesheet href=/css/style.css></head><body data-theme=light><div class=container><nav id=sidebar class=sidebar><div class=sidebar-header><div class=sidebar-controls><button id=menu-toggle class=menu-toggle title="Toggle Menu">
+<span class=hamburger></span>
+</button>
+<button id=theme-toggle class=theme-toggle title="Toggle Theme">
+<span class=theme-icon>🌙</span></button></div><h2>k8s.io/apimachinery Documentation</h2></div><div class=sidebar-content><ul class=menu><li><a href=/01-runtime-package/>Runtime Package</a></li><li><a href=/02-api-meta-package/>Api Meta Package</a></li><li><a href=/03-labels-and-fields-packages/>Labels And Fields Packages</a></li><li><a href=/04-watch-package/>Watch Package</a></li><li><a href=/05-serialization/>Serialization</a></li><li><a href=/06-utility-packages/ class=active>Utility Packages</a></li><li><a href=/07-conversion-and-resources/>Conversion And Resources</a></li><li><a href=/00-overview/>Overview</a></li></ul></div></nav><div class=resize-handle id=resize-handle></div><main class=main-content><article class=content><h1>Utility Packages</h1><div class=page-content><h2 id=overview>Overview</h2><p>The <code>pkg/util</code> directory contains numerous utility packages that provide common functionality used throughout Kubernetes. These packages handle everything from polling and retry logic to patching and validation.</p><h2 id=key-utility-packages>Key Utility Packages</h2><p><img src=/diagrams/diagram-8550e84a.svg alt=Diagram></p><h2 id=wait-package>Wait Package</h2><p>Provides polling, retry, and periodic execution utilities.</p><h3 id=core-functions>Core Functions</h3><h4 id=until>Until</h4><p>Run a function periodically until stopped:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>Until</span>(<span style=color:#a6e22e>f</span> <span style=color:#66d9ef>func</span>(), <span style=color:#a6e22e>period</span> <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Duration</span>, <span style=color:#a6e22e>stopCh</span> <span style=color:#f92672>&lt;-</span><span style=color:#66d9ef>chan</span> <span style=color:#66d9ef>struct</span>{})
+</span></span></code></pre></div><p><strong>Example:</strong></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#a6e22e>stopCh</span> <span style=color:#f92672>:=</span> make(<span style=color:#66d9ef>chan</span> <span style=color:#66d9ef>struct</span>{})
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Run function every second</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>wait</span>.<span style=color:#a6e22e>Until</span>(<span style=color:#66d9ef>func</span>() {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#e6db74>&#34;Tick&#34;</span>)
+</span></span><span style=display:flex><span>}, <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Second</span>, <span style=color:#a6e22e>stopCh</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Stop after 10 seconds</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Sleep</span>(<span style=color:#ae81ff>10</span> <span style=color:#f92672>*</span> <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Second</span>)
+</span></span><span style=display:flex><span>close(<span style=color:#a6e22e>stopCh</span>)
+</span></span></code></pre></div><h4 id=forever>Forever</h4><p>Run a function periodically forever:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>Forever</span>(<span style=color:#a6e22e>f</span> <span style=color:#66d9ef>func</span>(), <span style=color:#a6e22e>period</span> <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Duration</span>)
+</span></span></code></pre></div><p><strong>Example:</strong></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Run forever (until process exits)</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>wait</span>.<span style=color:#a6e22e>Forever</span>(<span style=color:#66d9ef>func</span>() {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#e6db74>&#34;Heartbeat&#34;</span>)
+</span></span><span style=display:flex><span>}, <span style=color:#ae81ff>30</span><span style=color:#f92672>*</span><span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Second</span>)
+</span></span></code></pre></div><h4 id=poll>Poll</h4><p>Poll a condition until it succeeds or times out:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>Poll</span>(<span style=color:#a6e22e>interval</span>, <span style=color:#a6e22e>timeout</span> <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Duration</span>, <span style=color:#a6e22e>condition</span> <span style=color:#a6e22e>ConditionFunc</span>) <span style=color:#66d9ef>error</span>
+</span></span></code></pre></div><p><strong>Example:</strong></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Wait for pod to be ready</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>wait</span>.<span style=color:#a6e22e>Poll</span>(<span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Second</span>, <span style=color:#ae81ff>5</span><span style=color:#f92672>*</span><span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Minute</span>, <span style=color:#66d9ef>func</span>() (<span style=color:#66d9ef>bool</span>, <span style=color:#66d9ef>error</span>) {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>pod</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>client</span>.<span style=color:#a6e22e>CoreV1</span>().<span style=color:#a6e22e>Pods</span>(<span style=color:#e6db74>&#34;default&#34;</span>).<span style=color:#a6e22e>Get</span>(<span style=color:#a6e22e>ctx</span>, <span style=color:#e6db74>&#34;my-pod&#34;</span>, <span style=color:#a6e22e>metav1</span>.<span style=color:#a6e22e>GetOptions</span>{})
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>false</span>, <span style=color:#a6e22e>err</span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>pod</span>.<span style=color:#a6e22e>Status</span>.<span style=color:#a6e22e>Phase</span> <span style=color:#f92672>==</span> <span style=color:#a6e22e>v1</span>.<span style=color:#a6e22e>PodRunning</span>, <span style=color:#66d9ef>nil</span>
+</span></span><span style=display:flex><span>})
+</span></span></code></pre></div><h4 id=pollimmediate>PollImmediate</h4><p>Like Poll, but runs condition immediately:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>PollImmediate</span>(<span style=color:#a6e22e>interval</span>, <span style=color:#a6e22e>timeout</span> <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Duration</span>, <span style=color:#a6e22e>condition</span> <span style=color:#a6e22e>ConditionFunc</span>) <span style=color:#66d9ef>error</span>
+</span></span></code></pre></div><h4 id=pollinfinite>PollInfinite</h4><p>Poll indefinitely until condition succeeds:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>PollInfinite</span>(<span style=color:#a6e22e>interval</span> <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Duration</span>, <span style=color:#a6e22e>condition</span> <span style=color:#a6e22e>ConditionFunc</span>) <span style=color:#66d9ef>error</span>
+</span></span></code></pre></div><h4 id=exponentialbackoff>ExponentialBackoff</h4><p>Poll with exponential backoff:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>Backoff</span> <span style=color:#66d9ef>struct</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Duration</span> <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Duration</span>  <span style=color:#75715e>// Initial duration</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Factor</span>   <span style=color:#66d9ef>float64</span>        <span style=color:#75715e>// Multiplication factor</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Jitter</span>   <span style=color:#66d9ef>float64</span>        <span style=color:#75715e>// Jitter factor</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Steps</span>    <span style=color:#66d9ef>int</span>            <span style=color:#75715e>// Maximum steps</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Cap</span>      <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Duration</span>  <span style=color:#75715e>// Maximum duration</span>
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>b</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Backoff</span>) <span style=color:#a6e22e>Step</span>() <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Duration</span>
+</span></span></code></pre></div><p><strong>Example:</strong></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#a6e22e>backoff</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>wait</span>.<span style=color:#a6e22e>Backoff</span>{
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Duration</span>: <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Second</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Factor</span>:   <span style=color:#ae81ff>2.0</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Jitter</span>:   <span style=color:#ae81ff>0.1</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Steps</span>:    <span style=color:#ae81ff>5</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Cap</span>:      <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Minute</span>,
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>wait</span>.<span style=color:#a6e22e>ExponentialBackoff</span>(<span style=color:#a6e22e>backoff</span>, <span style=color:#66d9ef>func</span>() (<span style=color:#66d9ef>bool</span>, <span style=color:#66d9ef>error</span>) {
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// Try operation</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>tryOperation</span>()
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>==</span> <span style=color:#66d9ef>nil</span> {
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>true</span>, <span style=color:#66d9ef>nil</span>  <span style=color:#75715e>// Success</span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>isPermanentError</span>(<span style=color:#a6e22e>err</span>) {
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>false</span>, <span style=color:#a6e22e>err</span>  <span style=color:#75715e>// Permanent failure</span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>false</span>, <span style=color:#66d9ef>nil</span>  <span style=color:#75715e>// Retry</span>
+</span></span><span style=display:flex><span>})
+</span></span></code></pre></div><h3 id=context-aware-functions>Context-Aware Functions</h3><h4 id=polluntilcontextcancel>PollUntilContextCancel</h4><p>Poll until context is cancelled:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>PollUntilContextCancel</span>(<span style=color:#a6e22e>ctx</span> <span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>Context</span>, <span style=color:#a6e22e>interval</span> <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Duration</span>, <span style=color:#a6e22e>immediate</span> <span style=color:#66d9ef>bool</span>, <span style=color:#a6e22e>condition</span> <span style=color:#a6e22e>ConditionWithContextFunc</span>) <span style=color:#66d9ef>error</span>
+</span></span></code></pre></div><p><strong>Example:</strong></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#a6e22e>ctx</span>, <span style=color:#a6e22e>cancel</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>WithTimeout</span>(<span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>Background</span>(), <span style=color:#ae81ff>5</span><span style=color:#f92672>*</span><span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Minute</span>)
+</span></span><span style=display:flex><span><span style=color:#66d9ef>defer</span> <span style=color:#a6e22e>cancel</span>()
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>wait</span>.<span style=color:#a6e22e>PollUntilContextCancel</span>(<span style=color:#a6e22e>ctx</span>, <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Second</span>, <span style=color:#66d9ef>true</span>, <span style=color:#66d9ef>func</span>(<span style=color:#a6e22e>ctx</span> <span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>Context</span>) (<span style=color:#66d9ef>bool</span>, <span style=color:#66d9ef>error</span>) {
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// Check condition</span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>checkCondition</span>(), <span style=color:#66d9ef>nil</span>
+</span></span><span style=display:flex><span>})
+</span></span></code></pre></div><h3 id=jitter>Jitter</h3><p>Add randomness to avoid thundering herd:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>Jitter</span>(<span style=color:#a6e22e>duration</span> <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Duration</span>, <span style=color:#a6e22e>maxFactor</span> <span style=color:#66d9ef>float64</span>) <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Duration</span>
+</span></span></code></pre></div><p><strong>Example:</strong></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Add up to 20% jitter</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>interval</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>wait</span>.<span style=color:#a6e22e>Jitter</span>(<span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Second</span>, <span style=color:#ae81ff>0.2</span>)
+</span></span><span style=display:flex><span><span style=color:#75715e>// Returns between 1s and 1.2s</span>
+</span></span></code></pre></div><h3 id=group>Group</h3><p>Manage a group of goroutines:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>Group</span> <span style=color:#66d9ef>struct</span>{}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>g</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Group</span>) <span style=color:#a6e22e>Start</span>(<span style=color:#a6e22e>f</span> <span style=color:#66d9ef>func</span>())
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>g</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Group</span>) <span style=color:#a6e22e>StartWithChannel</span>(<span style=color:#a6e22e>stopCh</span> <span style=color:#f92672>&lt;-</span><span style=color:#66d9ef>chan</span> <span style=color:#66d9ef>struct</span>{}, <span style=color:#a6e22e>f</span> <span style=color:#66d9ef>func</span>(<span style=color:#a6e22e>stopCh</span> <span style=color:#f92672>&lt;-</span><span style=color:#66d9ef>chan</span> <span style=color:#66d9ef>struct</span>{}))
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>g</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Group</span>) <span style=color:#a6e22e>StartWithContext</span>(<span style=color:#a6e22e>ctx</span> <span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>Context</span>, <span style=color:#a6e22e>f</span> <span style=color:#66d9ef>func</span>(<span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>Context</span>))
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>g</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Group</span>) <span style=color:#a6e22e>Wait</span>()
+</span></span></code></pre></div><p><strong>Example:</strong></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>var</span> <span style=color:#a6e22e>group</span> <span style=color:#a6e22e>wait</span>.<span style=color:#a6e22e>Group</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Start multiple workers</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>for</span> <span style=color:#a6e22e>i</span> <span style=color:#f92672>:=</span> <span style=color:#ae81ff>0</span>; <span style=color:#a6e22e>i</span> &lt; <span style=color:#ae81ff>10</span>; <span style=color:#a6e22e>i</span><span style=color:#f92672>++</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>group</span>.<span style=color:#a6e22e>Start</span>(<span style=color:#66d9ef>func</span>() {
+</span></span><span style=display:flex><span>        <span style=color:#75715e>// Worker logic</span>
+</span></span><span style=display:flex><span>    })
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Wait for all to complete</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>group</span>.<span style=color:#a6e22e>Wait</span>()
+</span></span></code></pre></div><h2 id=sets-package>Sets Package</h2><p>Generic set implementation using Go generics.</p><h3 id=creating-sets>Creating Sets</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Empty set</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>s</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>sets</span>.<span style=color:#a6e22e>New</span>[<span style=color:#66d9ef>string</span>]()
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Set with initial values</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>s</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>sets</span>.<span style=color:#a6e22e>New</span>(<span style=color:#e6db74>&#34;a&#34;</span>, <span style=color:#e6db74>&#34;b&#34;</span>, <span style=color:#e6db74>&#34;c&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// From map keys</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>m</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>map</span>[<span style=color:#66d9ef>string</span>]<span style=color:#66d9ef>int</span>{<span style=color:#e6db74>&#34;a&#34;</span>: <span style=color:#ae81ff>1</span>, <span style=color:#e6db74>&#34;b&#34;</span>: <span style=color:#ae81ff>2</span>}
+</span></span><span style=display:flex><span><span style=color:#a6e22e>s</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>sets</span>.<span style=color:#a6e22e>KeySet</span>(<span style=color:#a6e22e>m</span>)
+</span></span></code></pre></div><h3 id=set-operations>Set Operations</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>Set</span>[<span style=color:#a6e22e>T</span> <span style=color:#a6e22e>comparable</span>] <span style=color:#66d9ef>map</span>[<span style=color:#a6e22e>T</span>]<span style=color:#a6e22e>Empty</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Insert elements</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>s</span>.<span style=color:#a6e22e>Insert</span>(<span style=color:#e6db74>&#34;d&#34;</span>, <span style=color:#e6db74>&#34;e&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Delete elements</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>s</span>.<span style=color:#a6e22e>Delete</span>(<span style=color:#e6db74>&#34;a&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Check membership</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> <span style=color:#a6e22e>s</span>.<span style=color:#a6e22e>Has</span>(<span style=color:#e6db74>&#34;b&#34;</span>) {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#e6db74>&#34;Set contains b&#34;</span>)
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Check all</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> <span style=color:#a6e22e>s</span>.<span style=color:#a6e22e>HasAll</span>(<span style=color:#e6db74>&#34;a&#34;</span>, <span style=color:#e6db74>&#34;b&#34;</span>, <span style=color:#e6db74>&#34;c&#34;</span>) {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#e6db74>&#34;Set contains all&#34;</span>)
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Check any</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> <span style=color:#a6e22e>s</span>.<span style=color:#a6e22e>HasAny</span>(<span style=color:#e6db74>&#34;a&#34;</span>, <span style=color:#e6db74>&#34;b&#34;</span>, <span style=color:#e6db74>&#34;c&#34;</span>) {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#e6db74>&#34;Set contains at least one&#34;</span>)
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Length</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>len</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>s</span>.<span style=color:#a6e22e>Len</span>()
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Clear</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>s</span>.<span style=color:#a6e22e>Clear</span>()
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Is empty</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> <span style=color:#a6e22e>s</span>.<span style=color:#a6e22e>IsEmpty</span>() {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#e6db74>&#34;Set is empty&#34;</span>)
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=set-algebra>Set Algebra</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#a6e22e>s1</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>sets</span>.<span style=color:#a6e22e>New</span>(<span style=color:#e6db74>&#34;a&#34;</span>, <span style=color:#e6db74>&#34;b&#34;</span>, <span style=color:#e6db74>&#34;c&#34;</span>)
+</span></span><span style=display:flex><span><span style=color:#a6e22e>s2</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>sets</span>.<span style=color:#a6e22e>New</span>(<span style=color:#e6db74>&#34;b&#34;</span>, <span style=color:#e6db74>&#34;c&#34;</span>, <span style=color:#e6db74>&#34;d&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Union</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>union</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>s1</span>.<span style=color:#a6e22e>Union</span>(<span style=color:#a6e22e>s2</span>)  <span style=color:#75715e>// {a, b, c, d}</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Intersection</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>intersection</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>s1</span>.<span style=color:#a6e22e>Intersection</span>(<span style=color:#a6e22e>s2</span>)  <span style=color:#75715e>// {b, c}</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Difference</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>diff</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>s1</span>.<span style=color:#a6e22e>Difference</span>(<span style=color:#a6e22e>s2</span>)  <span style=color:#75715e>// {a}</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Symmetric difference</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>symDiff</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>s1</span>.<span style=color:#a6e22e>SymmetricDifference</span>(<span style=color:#a6e22e>s2</span>)  <span style=color:#75715e>// {a, d}</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Is superset</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> <span style=color:#a6e22e>s1</span>.<span style=color:#a6e22e>IsSuperset</span>(<span style=color:#a6e22e>s2</span>) {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#e6db74>&#34;s1 contains all elements of s2&#34;</span>)
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Is subset</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> <span style=color:#a6e22e>s1</span>.<span style=color:#a6e22e>IsSubset</span>(<span style=color:#a6e22e>s2</span>) {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#e6db74>&#34;s1 is contained in s2&#34;</span>)
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Equal</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> <span style=color:#a6e22e>s1</span>.<span style=color:#a6e22e>Equal</span>(<span style=color:#a6e22e>s2</span>) {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#e6db74>&#34;Sets are equal&#34;</span>)
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=conversion>Conversion</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// To slice</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>slice</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>s</span>.<span style=color:#a6e22e>UnsortedList</span>()
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// To sorted slice (requires Ordered type)</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>sortedSlice</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>sets</span>.<span style=color:#a6e22e>List</span>(<span style=color:#a6e22e>s</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Pop arbitrary element</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>element</span>, <span style=color:#a6e22e>ok</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>s</span>.<span style=color:#a6e22e>PopAny</span>()
+</span></span></code></pre></div><h2 id=intstr-package>IntStr Package</h2><p>Represents a value that can be either an integer or a string.</p><h3 id=type-definition>Type Definition</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>IntOrString</span> <span style=color:#66d9ef>struct</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Type</span>   <span style=color:#a6e22e>Type</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>IntVal</span> <span style=color:#66d9ef>int32</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>StrVal</span> <span style=color:#66d9ef>string</span>
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>Type</span> <span style=color:#66d9ef>int</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>const</span> (
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Int</span>    <span style=color:#a6e22e>Type</span> = <span style=color:#66d9ef>iota</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>String</span>
+</span></span><span style=display:flex><span>)
+</span></span></code></pre></div><h3 id=creating-intorstring>Creating IntOrString</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// From int</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>val</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>intstr</span>.<span style=color:#a6e22e>FromInt</span>(<span style=color:#ae81ff>80</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// From int32</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>val</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>intstr</span>.<span style=color:#a6e22e>FromInt32</span>(<span style=color:#ae81ff>8080</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// From string</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>val</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>intstr</span>.<span style=color:#a6e22e>FromString</span>(<span style=color:#e6db74>&#34;http&#34;</span>)
+</span></span></code></pre></div><h3 id=using-intorstring>Using IntOrString</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Get int value</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> <span style=color:#a6e22e>val</span>.<span style=color:#a6e22e>Type</span> <span style=color:#f92672>==</span> <span style=color:#a6e22e>intstr</span>.<span style=color:#a6e22e>Int</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>port</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>val</span>.<span style=color:#a6e22e>IntValue</span>()
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Get string value</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> <span style=color:#a6e22e>val</span>.<span style=color:#a6e22e>Type</span> <span style=color:#f92672>==</span> <span style=color:#a6e22e>intstr</span>.<span style=color:#a6e22e>String</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>name</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>val</span>.<span style=color:#a6e22e>StrVal</span>
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Get as int (converts string to int if possible)</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>port</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>val</span>.<span style=color:#a6e22e>IntValue</span>()
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// String representation</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>str</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>val</span>.<span style=color:#a6e22e>String</span>()
+</span></span></code></pre></div><h3 id=use-cases>Use Cases</h3><p><strong>Service Ports:</strong></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>ServicePort</span> <span style=color:#66d9ef>struct</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Port</span>       <span style=color:#66d9ef>int32</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>TargetPort</span> <span style=color:#a6e22e>intstr</span>.<span style=color:#a6e22e>IntOrString</span>  <span style=color:#75715e>// Can be port number or name</span>
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// By number</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>port</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>ServicePort</span>{
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Port</span>:       <span style=color:#ae81ff>80</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>TargetPort</span>: <span style=color:#a6e22e>intstr</span>.<span style=color:#a6e22e>FromInt</span>(<span style=color:#ae81ff>8080</span>),
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// By name</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>port</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>ServicePort</span>{
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Port</span>:       <span style=color:#ae81ff>80</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>TargetPort</span>: <span style=color:#a6e22e>intstr</span>.<span style=color:#a6e22e>FromString</span>(<span style=color:#e6db74>&#34;http&#34;</span>),
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=errors-package>Errors Package</h2><p>Aggregate multiple errors.</p><h3 id=creating-aggregate-errors>Creating Aggregate Errors</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>NewAggregate</span>(<span style=color:#a6e22e>errlist</span> []<span style=color:#66d9ef>error</span>) <span style=color:#a6e22e>Aggregate</span>
+</span></span></code></pre></div><p><strong>Example:</strong></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>var</span> <span style=color:#a6e22e>errs</span> []<span style=color:#66d9ef>error</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>for</span> <span style=color:#a6e22e>_</span>, <span style=color:#a6e22e>item</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>items</span> {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>process</span>(<span style=color:#a6e22e>item</span>); <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>errs</span> = append(<span style=color:#a6e22e>errs</span>, <span style=color:#a6e22e>err</span>)
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> len(<span style=color:#a6e22e>errs</span>) &gt; <span style=color:#ae81ff>0</span> {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>utilerrors</span>.<span style=color:#a6e22e>NewAggregate</span>(<span style=color:#a6e22e>errs</span>)
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=aggregate-interface>Aggregate Interface</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>Aggregate</span> <span style=color:#66d9ef>interface</span> {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>error</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Errors</span>() []<span style=color:#66d9ef>error</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Is</span>(<span style=color:#66d9ef>error</span>) <span style=color:#66d9ef>bool</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=filtering-errors>Filtering Errors</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Filter out specific errors</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>filtered</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>utilerrors</span>.<span style=color:#a6e22e>FilterOut</span>(<span style=color:#a6e22e>err</span>, <span style=color:#66d9ef>func</span>(<span style=color:#a6e22e>e</span> <span style=color:#66d9ef>error</span>) <span style=color:#66d9ef>bool</span> {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>errors</span>.<span style=color:#a6e22e>Is</span>(<span style=color:#a6e22e>e</span>, <span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>Canceled</span>)
+</span></span><span style=display:flex><span>})
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Reduce to single error</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>reduced</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>utilerrors</span>.<span style=color:#a6e22e>Reduce</span>(<span style=color:#a6e22e>aggregate</span>)
+</span></span></code></pre></div><h2 id=validation-package>Validation Package</h2><p>Field validation utilities.</p><h3 id=field-path>Field Path</h3><p>Track location of validation errors:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>Path</span> <span style=color:#66d9ef>struct</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>name</span>   <span style=color:#66d9ef>string</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>parent</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Path</span>
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Create path</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>path</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>field</span>.<span style=color:#a6e22e>NewPath</span>(<span style=color:#e6db74>&#34;spec&#34;</span>).<span style=color:#a6e22e>Child</span>(<span style=color:#e6db74>&#34;containers&#34;</span>).<span style=color:#a6e22e>Index</span>(<span style=color:#ae81ff>0</span>).<span style=color:#a6e22e>Child</span>(<span style=color:#e6db74>&#34;name&#34;</span>)
+</span></span><span style=display:flex><span><span style=color:#75715e>// Results in: spec.containers[0].name</span>
+</span></span></code></pre></div><h3 id=error-types>Error Types</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Required field missing</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>field</span>.<span style=color:#a6e22e>Required</span>(<span style=color:#a6e22e>path</span>, <span style=color:#e6db74>&#34;field is required&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Invalid value</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>field</span>.<span style=color:#a6e22e>Invalid</span>(<span style=color:#a6e22e>path</span>, <span style=color:#a6e22e>value</span>, <span style=color:#e6db74>&#34;must be positive&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Not supported</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>field</span>.<span style=color:#a6e22e>NotSupported</span>(<span style=color:#a6e22e>path</span>, <span style=color:#a6e22e>value</span>, []<span style=color:#66d9ef>string</span>{<span style=color:#e6db74>&#34;supported&#34;</span>, <span style=color:#e6db74>&#34;values&#34;</span>})
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Duplicate value</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>field</span>.<span style=color:#a6e22e>Duplicate</span>(<span style=color:#a6e22e>path</span>, <span style=color:#a6e22e>value</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Too long</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>field</span>.<span style=color:#a6e22e>TooLong</span>(<span style=color:#a6e22e>path</span>, <span style=color:#a6e22e>value</span>, <span style=color:#a6e22e>maxLength</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Too short</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>field</span>.<span style=color:#a6e22e>TooShort</span>(<span style=color:#a6e22e>path</span>, <span style=color:#a6e22e>value</span>, <span style=color:#a6e22e>minLength</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Internal error</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>field</span>.<span style=color:#a6e22e>InternalError</span>(<span style=color:#a6e22e>path</span>, <span style=color:#a6e22e>err</span>)
+</span></span></code></pre></div><h3 id=error-list>Error List</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>ErrorList</span> []<span style=color:#f92672>*</span><span style=color:#a6e22e>Error</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Add errors</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>var</span> <span style=color:#a6e22e>allErrs</span> <span style=color:#a6e22e>field</span>.<span style=color:#a6e22e>ErrorList</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>allErrs</span> = append(<span style=color:#a6e22e>allErrs</span>, <span style=color:#a6e22e>field</span>.<span style=color:#a6e22e>Required</span>(<span style=color:#a6e22e>path</span>, <span style=color:#e6db74>&#34;required&#34;</span>))
+</span></span><span style=display:flex><span><span style=color:#a6e22e>allErrs</span> = append(<span style=color:#a6e22e>allErrs</span>, <span style=color:#a6e22e>field</span>.<span style=color:#a6e22e>Invalid</span>(<span style=color:#a6e22e>path</span>, <span style=color:#a6e22e>value</span>, <span style=color:#e6db74>&#34;invalid&#34;</span>))
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Convert to error</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> len(<span style=color:#a6e22e>allErrs</span>) &gt; <span style=color:#ae81ff>0</span> {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>allErrs</span>.<span style=color:#a6e22e>ToAggregate</span>()
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=strategic-merge-patch>Strategic Merge Patch</h2><p>Kubernetes-specific patching strategy.</p><h3 id=creating-patch>Creating Patch</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#f92672>import</span> <span style=color:#e6db74>&#34;k8s.io/apimachinery/pkg/util/strategicpatch&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Create patch between original and modified</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>patch</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>strategicpatch</span>.<span style=color:#a6e22e>CreateTwoWayMergePatch</span>(
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>originalJSON</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>modifiedJSON</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>dataStruct</span>,
+</span></span><span style=display:flex><span>)
+</span></span></code></pre></div><h3 id=applying-patch>Applying Patch</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Apply patch to original</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>result</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>strategicpatch</span>.<span style=color:#a6e22e>StrategicMergePatch</span>(
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>originalJSON</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>patchJSON</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>dataStruct</span>,
+</span></span><span style=display:flex><span>)
+</span></span></code></pre></div><h3 id=patch-strategies>Patch Strategies</h3><p><strong>Merge Strategies:</strong></p><ul><li><code>replace</code>: Replace entire field</li><li><code>merge</code>: Merge objects/maps</li><li><code>retainKeys</code>: Merge but remove unlisted keys</li></ul><p><strong>List Strategies:</strong></p><ul><li><code>atomic</code>: Replace entire list</li><li><code>merge</code>: Merge by patch key</li><li><code>set</code>: Treat as set (no duplicates)</li></ul><p><strong>Example Struct Tags:</strong></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>PodSpec</span> <span style=color:#66d9ef>struct</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Containers</span> []<span style=color:#a6e22e>Container</span> <span style=color:#e6db74>`json:&#34;containers&#34; patchStrategy:&#34;merge&#34; patchMergeKey:&#34;name&#34;`</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Volumes</span>    []<span style=color:#a6e22e>Volume</span>    <span style=color:#e6db74>`json:&#34;volumes&#34; patchStrategy:&#34;merge,retainKeys&#34; patchMergeKey:&#34;name&#34;`</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=json-merge-patch>JSON Merge Patch</h2><p>RFC 7386 JSON Merge Patch.</p><h3 id=creating-patch-1>Creating Patch</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#f92672>import</span> <span style=color:#e6db74>&#34;k8s.io/apimachinery/pkg/util/jsonmergepatch&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>patch</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>jsonmergepatch</span>.<span style=color:#a6e22e>CreateThreeWayJSONMergePatch</span>(
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>originalJSON</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>modifiedJSON</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>currentJSON</span>,
+</span></span><span style=display:flex><span>)
+</span></span></code></pre></div><h3 id=applying-patch-1>Applying Patch</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#a6e22e>result</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>jsonmergepatch</span>.<span style=color:#a6e22e>MergePatch</span>(<span style=color:#a6e22e>originalJSON</span>, <span style=color:#a6e22e>patchJSON</span>)
+</span></span></code></pre></div><h2 id=managed-fields>Managed Fields</h2><p>Server-side apply field tracking.</p><h3 id=field-manager>Field Manager</h3><p>Tracks which fields are managed by which actors:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>FieldManager</span> <span style=color:#66d9ef>interface</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Update</span>(<span style=color:#a6e22e>obj</span> <span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>Object</span>, <span style=color:#a6e22e>manager</span> <span style=color:#66d9ef>string</span>) <span style=color:#66d9ef>error</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Apply</span>(<span style=color:#a6e22e>obj</span> <span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>Object</span>, <span style=color:#a6e22e>manager</span> <span style=color:#66d9ef>string</span>, <span style=color:#a6e22e>force</span> <span style=color:#66d9ef>bool</span>) <span style=color:#66d9ef>error</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=use-cases-1>Use Cases</h3><ul><li>Server-side apply</li><li>Field ownership tracking</li><li>Conflict detection</li><li>Multi-actor coordination</li></ul><h2 id=net-package>Net Package</h2><p>Network utilities.</p><h3 id=parsing>Parsing</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Parse CIDR</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>_</span>, <span style=color:#a6e22e>ipnet</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>net</span>.<span style=color:#a6e22e>ParseCIDR</span>(<span style=color:#e6db74>&#34;10.0.0.0/8&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Parse IP</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>ip</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>net</span>.<span style=color:#a6e22e>ParseIP</span>(<span style=color:#e6db74>&#34;192.168.1.1&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Parse port range</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>ports</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>net</span>.<span style=color:#a6e22e>ParsePortRange</span>(<span style=color:#e6db74>&#34;8000-9000&#34;</span>)
+</span></span></code></pre></div><h3 id=validation>Validation</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Is valid IP</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> <span style=color:#a6e22e>net</span>.<span style=color:#a6e22e>IsIPv4String</span>(<span style=color:#a6e22e>str</span>) {
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// Valid IPv4</span>
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> <span style=color:#a6e22e>net</span>.<span style=color:#a6e22e>IsIPv6String</span>(<span style=color:#a6e22e>str</span>) {
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// Valid IPv6</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=yaml-package>YAML Package</h2><p>YAML utilities built on JSON.</p><h3 id=converting>Converting</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#f92672>import</span> <span style=color:#e6db74>&#34;k8s.io/apimachinery/pkg/util/yaml&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// YAML to JSON</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>jsonData</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>yaml</span>.<span style=color:#a6e22e>ToJSON</span>(<span style=color:#a6e22e>yamlData</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// JSON to YAML</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>yamlData</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>yaml</span>.<span style=color:#a6e22e>JSONToYAML</span>(<span style=color:#a6e22e>jsonData</span>)
+</span></span></code></pre></div><h3 id=streaming>Streaming</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Create YAML decoder</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>decoder</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>yaml</span>.<span style=color:#a6e22e>NewYAMLToJSONDecoder</span>(<span style=color:#a6e22e>reader</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Decode multiple YAML documents</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>for</span> {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>var</span> <span style=color:#a6e22e>obj</span> <span style=color:#66d9ef>map</span>[<span style=color:#66d9ef>string</span>]<span style=color:#66d9ef>interface</span>{}
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>decoder</span>.<span style=color:#a6e22e>Decode</span>(<span style=color:#f92672>&amp;</span><span style=color:#a6e22e>obj</span>); <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>==</span> <span style=color:#a6e22e>io</span>.<span style=color:#a6e22e>EOF</span> {
+</span></span><span style=display:flex><span>            <span style=color:#66d9ef>break</span>
+</span></span><span style=display:flex><span>        }
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>err</span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// Process obj</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=diff-package>Diff Package</h2><p>Object comparison and diffing.</p><h3 id=creating-diffs>Creating Diffs</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#f92672>import</span> <span style=color:#e6db74>&#34;k8s.io/apimachinery/pkg/util/diff&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Object diff</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>diff</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>diff</span>.<span style=color:#a6e22e>ObjectDiff</span>(<span style=color:#a6e22e>obj1</span>, <span style=color:#a6e22e>obj2</span>)
+</span></span><span style=display:flex><span><span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#a6e22e>diff</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Reflect diff</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>diff</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>diff</span>.<span style=color:#a6e22e>ObjectReflectDiff</span>(<span style=color:#a6e22e>obj1</span>, <span style=color:#a6e22e>obj2</span>)
+</span></span></code></pre></div><h2 id=version-package>Version Package</h2><p>Version comparison utilities.</p><h3 id=comparing-versions>Comparing Versions</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#f92672>import</span> <span style=color:#e6db74>&#34;k8s.io/apimachinery/pkg/util/version&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>v1</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>version</span>.<span style=color:#a6e22e>MustParse</span>(<span style=color:#e6db74>&#34;1.20.0&#34;</span>)
+</span></span><span style=display:flex><span><span style=color:#a6e22e>v2</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>version</span>.<span style=color:#a6e22e>MustParse</span>(<span style=color:#e6db74>&#34;1.21.0&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Compare</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> <span style=color:#a6e22e>v1</span>.<span style=color:#a6e22e>LessThan</span>(<span style=color:#a6e22e>v2</span>) {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#e6db74>&#34;v1 &lt; v2&#34;</span>)
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> <span style=color:#a6e22e>v1</span>.<span style=color:#a6e22e>AtLeast</span>(<span style=color:#a6e22e>v2</span>) {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#e6db74>&#34;v1 &gt;= v2&#34;</span>)
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// String representation</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>str</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>v1</span>.<span style=color:#a6e22e>String</span>()  <span style=color:#75715e>// &#34;1.20.0&#34;</span>
+</span></span></code></pre></div><h2 id=common-patterns>Common Patterns</h2><h3 id=1-retry-with-backoff>1. Retry with Backoff</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#a6e22e>backoff</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>wait</span>.<span style=color:#a6e22e>Backoff</span>{
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Duration</span>: <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Second</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Factor</span>:   <span style=color:#ae81ff>2.0</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Steps</span>:    <span style=color:#ae81ff>5</span>,
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>wait</span>.<span style=color:#a6e22e>ExponentialBackoff</span>(<span style=color:#a6e22e>backoff</span>, <span style=color:#66d9ef>func</span>() (<span style=color:#66d9ef>bool</span>, <span style=color:#66d9ef>error</span>) {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>tryOperation</span>()
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>==</span> <span style=color:#66d9ef>nil</span>, <span style=color:#a6e22e>err</span>
+</span></span><span style=display:flex><span>})
+</span></span></code></pre></div><h3 id=2-periodic-task>2. Periodic Task</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#a6e22e>stopCh</span> <span style=color:#f92672>:=</span> make(<span style=color:#66d9ef>chan</span> <span style=color:#66d9ef>struct</span>{})
+</span></span><span style=display:flex><span><span style=color:#66d9ef>defer</span> close(<span style=color:#a6e22e>stopCh</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>wait</span>.<span style=color:#a6e22e>Until</span>(<span style=color:#66d9ef>func</span>() {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>performTask</span>()
+</span></span><span style=display:flex><span>}, <span style=color:#ae81ff>30</span><span style=color:#f92672>*</span><span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Second</span>, <span style=color:#a6e22e>stopCh</span>)
+</span></span></code></pre></div><h3 id=3-set-operations>3. Set Operations</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#a6e22e>current</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>sets</span>.<span style=color:#a6e22e>New</span>(<span style=color:#e6db74>&#34;a&#34;</span>, <span style=color:#e6db74>&#34;b&#34;</span>, <span style=color:#e6db74>&#34;c&#34;</span>)
+</span></span><span style=display:flex><span><span style=color:#a6e22e>desired</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>sets</span>.<span style=color:#a6e22e>New</span>(<span style=color:#e6db74>&#34;b&#34;</span>, <span style=color:#e6db74>&#34;c&#34;</span>, <span style=color:#e6db74>&#34;d&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>toAdd</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>desired</span>.<span style=color:#a6e22e>Difference</span>(<span style=color:#a6e22e>current</span>)     <span style=color:#75715e>// {d}</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>toRemove</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>current</span>.<span style=color:#a6e22e>Difference</span>(<span style=color:#a6e22e>desired</span>)  <span style=color:#75715e>// {a}</span>
+</span></span></code></pre></div><h3 id=4-field-validation>4. Field Validation</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>ValidatePod</span>(<span style=color:#a6e22e>pod</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>v1</span>.<span style=color:#a6e22e>Pod</span>) <span style=color:#a6e22e>field</span>.<span style=color:#a6e22e>ErrorList</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>allErrs</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>field</span>.<span style=color:#a6e22e>ErrorList</span>{}
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>pod</span>.<span style=color:#a6e22e>Name</span> <span style=color:#f92672>==</span> <span style=color:#e6db74>&#34;&#34;</span> {
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>allErrs</span> = append(<span style=color:#a6e22e>allErrs</span>, <span style=color:#a6e22e>field</span>.<span style=color:#a6e22e>Required</span>(
+</span></span><span style=display:flex><span>            <span style=color:#a6e22e>field</span>.<span style=color:#a6e22e>NewPath</span>(<span style=color:#e6db74>&#34;metadata&#34;</span>, <span style=color:#e6db74>&#34;name&#34;</span>),
+</span></span><span style=display:flex><span>            <span style=color:#e6db74>&#34;name is required&#34;</span>,
+</span></span><span style=display:flex><span>        ))
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>allErrs</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=5-error-aggregation>5. Error Aggregation</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>var</span> <span style=color:#a6e22e>errs</span> []<span style=color:#66d9ef>error</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>for</span> <span style=color:#a6e22e>i</span>, <span style=color:#a6e22e>item</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>items</span> {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>validate</span>(<span style=color:#a6e22e>item</span>); <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>errs</span> = append(<span style=color:#a6e22e>errs</span>, <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Errorf</span>(<span style=color:#e6db74>&#34;item %d: %w&#34;</span>, <span style=color:#a6e22e>i</span>, <span style=color:#a6e22e>err</span>))
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span><span style=color:#66d9ef>return</span> <span style=color:#a6e22e>utilerrors</span>.<span style=color:#a6e22e>NewAggregate</span>(<span style=color:#a6e22e>errs</span>)
+</span></span></code></pre></div><h2 id=summary>Summary</h2><p>The utility packages provide:</p><ol><li><strong>wait</strong>: Polling, retry, and periodic execution</li><li><strong>sets</strong>: Generic set data structure</li><li><strong>intstr</strong>: Integer or string type</li><li><strong>errors</strong>: Error aggregation</li><li><strong>validation</strong>: Field validation</li><li><strong>strategicpatch</strong>: Kubernetes-specific patching</li><li><strong>mergepatch</strong>: JSON merge patch</li><li><strong>managedfields</strong>: Server-side apply tracking</li><li><strong>net</strong>: Network utilities</li><li><strong>yaml</strong>: YAML conversion</li><li><strong>diff</strong>: Object comparison</li><li><strong>version</strong>: Version comparison</li></ol><p>These utilities are essential building blocks used throughout Kubernetes for common operations.</p></div><nav class=page-nav><a href=/07-conversion-and-resources/ class=prev>← Conversion And Resources</a>
+<a href=/05-serialization/ class=next>Serialization →</a></nav></article></main></div><script src=/js/theme.js></script><script src=/js/menu.js></script><script src=/js/resize.js></script></body></html>

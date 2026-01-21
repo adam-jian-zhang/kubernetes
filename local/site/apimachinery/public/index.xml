@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>k8s.io/apimachinery Documentation</title><link>http://localhost:9001/</link><description>Recent content on k8s.io/apimachinery Documentation</description><generator>Hugo</generator><language>en-us</language><atom:link href="http://localhost:9001/index.xml" rel="self" type="application/rss+xml"/><item><title>Runtime Package</title><link>http://localhost:9001/01-runtime-package/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>http://localhost:9001/01-runtime-package/</guid><description>&lt;h2 id="overview"&gt;Overview&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;pkg/runtime&lt;/code&gt; package is the core of k8s.io/apimachinery, providing the fundamental machinery for working with Kubernetes API objects. It defines the type system, serialization interfaces, and conversion mechanisms that enable versioned APIs.&lt;/p&gt;
+&lt;h2 id="purpose"&gt;Purpose&lt;/h2&gt;
+&lt;p&gt;The runtime package provides:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;Type Registry (Scheme)&lt;/strong&gt;: Maps between Go types and GroupVersionKind&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Object Interface&lt;/strong&gt;: Base interface for all API objects&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Serialization&lt;/strong&gt;: Encoding and decoding objects in multiple formats&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version Conversion&lt;/strong&gt;: Converting objects between API versions&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type Metadata&lt;/strong&gt;: TypeMeta for embedding in API objects&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id="architecture"&gt;Architecture&lt;/h2&gt;
+&lt;p&gt;&lt;img src="http://localhost:9001/diagrams/diagram-d4bb8eb3.svg" alt="Diagram"&gt;&lt;/p&gt;</description></item><item><title>Api Meta Package</title><link>http://localhost:9001/02-api-meta-package/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>http://localhost:9001/02-api-meta-package/</guid><description>&lt;h2 id="overview"&gt;Overview&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;pkg/api/meta&lt;/code&gt; package provides utilities for working with API object metadata and resource mapping. It enables generic access to object metadata (name, namespace, labels, annotations) and mapping between GroupVersionKind (type) and GroupVersionResource (REST endpoint).&lt;/p&gt;
+&lt;h2 id="purpose"&gt;Purpose&lt;/h2&gt;
+&lt;p&gt;The meta package provides:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;Metadata Access&lt;/strong&gt;: Generic interfaces to access object metadata&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;REST Mapping&lt;/strong&gt;: Map between Kind and Resource names&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Resource Discovery&lt;/strong&gt;: Determine REST endpoints for types&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Scope Information&lt;/strong&gt;: Identify namespace vs cluster-scoped resources&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Conditions Management&lt;/strong&gt;: Work with status conditions&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id="architecture"&gt;Architecture&lt;/h2&gt;
+&lt;p&gt;&lt;img src="http://localhost:9001/diagrams/diagram-02f1bae8.svg" alt="Diagram"&gt;&lt;/p&gt;</description></item><item><title>Labels And Fields Packages</title><link>http://localhost:9001/03-labels-and-fields-packages/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>http://localhost:9001/03-labels-and-fields-packages/</guid><description>&lt;h2 id="overview"&gt;Overview&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;pkg/labels&lt;/code&gt; and &lt;code&gt;pkg/fields&lt;/code&gt; packages provide selector functionality for filtering Kubernetes objects. Labels selectors filter based on object labels, while field selectors filter based on object field values. Both packages share similar APIs and design patterns.&lt;/p&gt;
+&lt;h2 id="purpose"&gt;Purpose&lt;/h2&gt;
+&lt;p&gt;These packages provide:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;Label Selectors&lt;/strong&gt;: Filter objects by label key-value pairs&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Field Selectors&lt;/strong&gt;: Filter objects by field values&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Requirement System&lt;/strong&gt;: Express complex selection criteria&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Set Operations&lt;/strong&gt;: Match selectors against label/field sets&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Parsing&lt;/strong&gt;: Parse selector strings from user input&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id="architecture"&gt;Architecture&lt;/h2&gt;
+&lt;p&gt;&lt;img src="http://localhost:9001/diagrams/diagram-de636ac2.svg" alt="Diagram"&gt;&lt;/p&gt;</description></item><item><title>Watch Package</title><link>http://localhost:9001/04-watch-package/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>http://localhost:9001/04-watch-package/</guid><description>&lt;h2 id="overview"&gt;Overview&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;pkg/watch&lt;/code&gt; package provides interfaces and implementations for watching changes to Kubernetes resources in real-time. It enables clients to receive notifications when resources are added, modified, or deleted, without polling.&lt;/p&gt;
+&lt;h2 id="purpose"&gt;Purpose&lt;/h2&gt;
+&lt;p&gt;The watch package provides:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;Watch Interface&lt;/strong&gt;: Core interface for observing resource changes&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Event Types&lt;/strong&gt;: Typed events for different change types&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Stream Watching&lt;/strong&gt;: Watch resources from streaming connections&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Broadcasting&lt;/strong&gt;: Distribute events to multiple watchers&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Filtering&lt;/strong&gt;: Filter events based on criteria&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Multiplexing&lt;/strong&gt;: Combine multiple watch sources&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id="architecture"&gt;Architecture&lt;/h2&gt;
+&lt;p&gt;&lt;img src="http://localhost:9001/diagrams/diagram-9ccb8748.svg" alt="Diagram"&gt;&lt;/p&gt;</description></item><item><title>Serialization</title><link>http://localhost:9001/05-serialization/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>http://localhost:9001/05-serialization/</guid><description>&lt;h2 id="overview"&gt;Overview&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;pkg/runtime/serializer&lt;/code&gt; package provides multiple serialization formats for Kubernetes API objects. It supports JSON, YAML, Protocol Buffers, and CBOR, with automatic version conversion and content negotiation.&lt;/p&gt;
+&lt;h2 id="purpose"&gt;Purpose&lt;/h2&gt;
+&lt;p&gt;The serializer package provides:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;Multiple Formats&lt;/strong&gt;: JSON, YAML, Protobuf, CBOR&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Content Negotiation&lt;/strong&gt;: Select format based on HTTP headers&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version Conversion&lt;/strong&gt;: Automatic conversion during serialization&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Streaming&lt;/strong&gt;: Efficient streaming for large collections&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Strict Mode&lt;/strong&gt;: Validate unknown fields&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Pretty Printing&lt;/strong&gt;: Human-readable output&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id="architecture"&gt;Architecture&lt;/h2&gt;
+&lt;p&gt;&lt;img src="http://localhost:9001/diagrams/diagram-e243627b.svg" alt="Diagram"&gt;&lt;/p&gt;
+&lt;h2 id="codecfactory"&gt;CodecFactory&lt;/h2&gt;
+&lt;p&gt;The central factory for creating codecs and serializers.&lt;/p&gt;</description></item><item><title>Utility Packages</title><link>http://localhost:9001/06-utility-packages/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>http://localhost:9001/06-utility-packages/</guid><description>&lt;h2 id="overview"&gt;Overview&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;pkg/util&lt;/code&gt; directory contains numerous utility packages that provide common functionality used throughout Kubernetes. These packages handle everything from polling and retry logic to patching and validation.&lt;/p&gt;
+&lt;h2 id="key-utility-packages"&gt;Key Utility Packages&lt;/h2&gt;
+&lt;p&gt;&lt;img src="http://localhost:9001/diagrams/diagram-8550e84a.svg" alt="Diagram"&gt;&lt;/p&gt;
+&lt;h2 id="wait-package"&gt;Wait Package&lt;/h2&gt;
+&lt;p&gt;Provides polling, retry, and periodic execution utilities.&lt;/p&gt;
+&lt;h3 id="core-functions"&gt;Core Functions&lt;/h3&gt;
+&lt;h4 id="until"&gt;Until&lt;/h4&gt;
+&lt;p&gt;Run a function periodically until stopped:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;func&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;Until&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;f&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;func&lt;/span&gt;(), &lt;span style="color:#a6e22e"&gt;period&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;time&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Duration&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;stopCh&lt;/span&gt; &lt;span style="color:#f92672"&gt;&amp;lt;-&lt;/span&gt;&lt;span style="color:#66d9ef"&gt;chan&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;struct&lt;/span&gt;{})
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;strong&gt;Example:&lt;/strong&gt;&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;stopCh&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; make(&lt;span style="color:#66d9ef"&gt;chan&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;struct&lt;/span&gt;{})
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;// Run function every second&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;wait&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Until&lt;/span&gt;(&lt;span style="color:#66d9ef"&gt;func&lt;/span&gt;() {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;fmt&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Println&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;Tick&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}, &lt;span style="color:#a6e22e"&gt;time&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Second&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;stopCh&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;// Stop after 10 seconds&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;time&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Sleep&lt;/span&gt;(&lt;span style="color:#ae81ff"&gt;10&lt;/span&gt; &lt;span style="color:#f92672"&gt;*&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;time&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Second&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;close(&lt;span style="color:#a6e22e"&gt;stopCh&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h4 id="forever"&gt;Forever&lt;/h4&gt;
+&lt;p&gt;Run a function periodically forever:&lt;/p&gt;</description></item><item><title>Conversion And Resources</title><link>http://localhost:9001/07-conversion-and-resources/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>http://localhost:9001/07-conversion-and-resources/</guid><description>&lt;h2 id="overview"&gt;Overview&lt;/h2&gt;
+&lt;p&gt;This document covers two important aspects of apimachinery: the conversion system for transforming objects between API versions, and the resource quantity system for representing computational resources.&lt;/p&gt;
+&lt;h2 id="conversion-package"&gt;Conversion Package&lt;/h2&gt;
+&lt;h3 id="purpose"&gt;Purpose&lt;/h3&gt;
+&lt;p&gt;The &lt;code&gt;pkg/conversion&lt;/code&gt; package provides automatic and manual conversion between different versions of API objects. It enables Kubernetes to maintain backward compatibility while evolving its APIs.&lt;/p&gt;
+&lt;h3 id="architecture"&gt;Architecture&lt;/h3&gt;
+&lt;p&gt;&lt;img src="http://localhost:9001/diagrams/diagram-b0699fba.svg" alt="Diagram"&gt;&lt;/p&gt;
+&lt;h3 id="converter"&gt;Converter&lt;/h3&gt;
+&lt;p&gt;The core conversion engine:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;type&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;Converter&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;struct&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;conversionFuncs&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;ConversionFuncs&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;generatedConversionFuncs&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;ConversionFuncs&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;ignoredUntypedConversions&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;map&lt;/span&gt;[&lt;span style="color:#a6e22e"&gt;typePair&lt;/span&gt;]&lt;span style="color:#66d9ef"&gt;struct&lt;/span&gt;{}
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id="creating-a-converter"&gt;Creating a Converter&lt;/h3&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#f92672"&gt;import&lt;/span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;k8s.io/apimachinery/pkg/conversion&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;converter&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;conversion&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NewConverter&lt;/span&gt;(&lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id="conversion-functions"&gt;Conversion Functions&lt;/h3&gt;
+&lt;h4 id="function-signature"&gt;Function Signature&lt;/h4&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;type&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;ConversionFunc&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;func&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;a&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;b&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;interface&lt;/span&gt;{}, &lt;span style="color:#a6e22e"&gt;scope&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;Scope&lt;/span&gt;) &lt;span style="color:#66d9ef"&gt;error&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;strong&gt;Parameters:&lt;/strong&gt;&lt;/p&gt;</description></item><item><title>Overview</title><link>http://localhost:9001/00-overview/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>http://localhost:9001/00-overview/</guid><description>&lt;h2 id="introduction"&gt;Introduction&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;k8s.io/apimachinery&lt;/code&gt; is a foundational library that provides the core machinery for working with Kubernetes API objects. It is a shared dependency for servers and clients to work with Kubernetes API infrastructure without direct type dependencies. This library is designed to support versioned APIs, type-safe serialization/deserialization, and conversion between different API versions.&lt;/p&gt;
+&lt;h2 id="purpose"&gt;Purpose&lt;/h2&gt;
+&lt;p&gt;The primary purpose of apimachinery is to provide:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;Scheme Management&lt;/strong&gt;: Type registry for converting group, version, and kind information to and from Go schemas&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Serialization/Deserialization&lt;/strong&gt;: Encoding and decoding API objects in multiple formats (JSON, YAML, Protobuf, CBOR)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Version Conversion&lt;/strong&gt;: Converting objects between different API versions&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Metadata Handling&lt;/strong&gt;: Working with API object metadata (labels, annotations, resource versions)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Selection&lt;/strong&gt;: Label and field selectors for filtering objects&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Watch Interface&lt;/strong&gt;: Observing changes to API objects&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Utility Functions&lt;/strong&gt;: Common utilities for validation, patching, and resource management&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id="high-level-architecture"&gt;High-Level Architecture&lt;/h2&gt;
+&lt;p&gt;&lt;img src="http://localhost:9001/diagrams/diagram-d09c6889.svg" alt="Diagram"&gt;&lt;/p&gt;</description></item></channel></rss>

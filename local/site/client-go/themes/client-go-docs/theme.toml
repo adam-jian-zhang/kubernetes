@@ -1,0 +1,9 @@
+name = "client-go-docs"
+license = "Apache-2.0"
+description = "Custom theme for client-go documentation"
+homepage = "https://github.com/kubernetes/client-go"
+min_version = "0.100.0"
+
+[author]
+  name = "Kubernetes"
+  homepage = "https://kubernetes.io"

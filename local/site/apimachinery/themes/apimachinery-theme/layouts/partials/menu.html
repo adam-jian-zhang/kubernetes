@@ -1,0 +1,11 @@
+<ul class="menu">
+    {{ range .Site.RegularPages.ByWeight }}
+    {{ if not .IsHome }}
+    <li>
+        <a href="{{ .RelPermalink }}" class="{{ if eq $.RelPermalink .RelPermalink }}active{{ end }}">
+            {{ .Title }}
+        </a>
+    </li>
+    {{ end }}
+    {{ end }}
+</ul>

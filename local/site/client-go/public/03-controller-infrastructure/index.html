@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en-us" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Comprehensive documentation for k8s.io/client-go - the official Kubernetes Go client library">
+    <title>Controller Infrastructure | client-go Documentation</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h1 class="sidebar-title">
+                    <i class="fas fa-cube"></i>
+                    <span class="sidebar-title-text">client-go</span>
+                </h1>
+                <button id="theme-toggle" class="icon-btn" title="Toggle theme">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+            
+            <nav class="sidebar-nav">
+                
+                
+                <a href="/" class="nav-link ">
+                    <span class="nav-text">Home</span>
+                </a>
+                
+                <a href="/00-overview/" class="nav-link ">
+                    <span class="nav-text">Overview</span>
+                </a>
+                
+                <a href="/01-core-packages/" class="nav-link ">
+                    <span class="nav-text">Core Packages</span>
+                </a>
+                
+                <a href="/02-configuration/" class="nav-link ">
+                    <span class="nav-text">Configuration</span>
+                </a>
+                
+                <a href="/03-controller-infrastructure/" class="nav-link active">
+                    <span class="nav-text">Controllers</span>
+                </a>
+                
+                <a href="/04-advanced-features/" class="nav-link ">
+                    <span class="nav-text">Advanced Features</span>
+                </a>
+                
+                <a href="/05-utilities/" class="nav-link ">
+                    <span class="nav-text">Utilities</span>
+                </a>
+                
+                <a href="/06-examples/" class="nav-link ">
+                    <span class="nav-text">Examples</span>
+                </a>
+                
+                <a href="/index-page/" class="nav-link ">
+                    <span class="nav-text">Index</span>
+                </a>
+                
+            </nav>
+            
+            <div class="sidebar-footer">
+                <a href="https://github.com/kubernetes/client-go" target="_blank" class="github-link">
+                    <i class="fab fa-github"></i>
+                    <span class="nav-text">GitHub</span>
+                </a>
+            </div>
+        </aside>
+
+        
+        <div id="resize-handle" class="resize-handle"></div>
+
+        
+        <main class="main-content">
+            <div class="content-header">
+                <button id="menu-toggle" class="icon-btn" title="Toggle menu">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1 class="page-title">Controller Infrastructure</h1>
+            </div>
+            
+            <div class="content-body">
+                
+<article class="article">
+    <h1 id="controller-infrastructure">Controller Infrastructure</h1>
+<p>This document covers the controller infrastructure in <code>client-go</code>, which provides the foundation for building Kubernetes controllers and operators.</p>
+<h2 id="controller-pattern-overview">Controller Pattern Overview</h2>
+<p>The controller pattern is the heart of Kubernetes&rsquo; control plane. Controllers watch the desired state and current state of resources, then take actions to reconcile any differences.</p>
+<div class="mermaid-diagram"><img src="/images/diagram_672dd4f126c2ff9e.svg" alt="Diagram" /></div>
+<h2 id="architecture">Architecture</h2>
+<div class="mermaid-diagram"><img src="/images/diagram_841f70a38373d6ab.svg" alt="Diagram" /></div>
+<h2 id="toolscache-package">tools/cache Package</h2>
+<p><strong>Location</strong>: <code>tools/cache/</code></p>
+<p>The <code>tools/cache</code> package provides the core infrastructure for controllers.</p>
+<h3 id="key-components">Key Components</h3>
+<h4 id="1-reflector">1. Reflector</h4>
+<p>The Reflector watches a specified resource and causes all changes to be reflected in a given store.</p>
+<p><strong>Key Features</strong>:</p>
+<ul>
+<li>Performs initial LIST to get current state</li>
+<li>Starts WATCH from the resourceVersion of the LIST</li>
+<li>Handles watch errors and reconnection</li>
+<li>Supports watch bookmarks for efficient resumption</li>
+<li>Implements exponential backoff for retries</li>
+</ul>
+<p><strong>Structure</strong>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Reflector</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">name</span>              <span style="color:#66d9ef">string</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">typeDescription</span>   <span style="color:#66d9ef">string</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">expectedType</span>      <span style="color:#a6e22e">reflect</span>.<span style="color:#a6e22e">Type</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">expectedGVK</span>       <span style="color:#f92672">*</span><span style="color:#a6e22e">schema</span>.<span style="color:#a6e22e">GroupVersionKind</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">store</span>             <span style="color:#a6e22e">ReflectorStore</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">listerWatcher</span>     <span style="color:#a6e22e">ListerWatcherWithContext</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">backoffManager</span>    <span style="color:#a6e22e">wait</span>.<span style="color:#a6e22e">BackoffManager</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">resyncPeriod</span>      <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Duration</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">minWatchTimeout</span>   <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Duration</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">clock</span>             <span style="color:#a6e22e">clock</span>.<span style="color:#a6e22e">Clock</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">paginatedResult</span>   <span style="color:#66d9ef">bool</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">lastSyncResourceVersion</span> <span style="color:#66d9ef">string</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">isLastSyncResourceVersionUnavailable</span> <span style="color:#66d9ef">bool</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">WatchListPageSize</span> <span style="color:#66d9ef">int64</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">ShouldResync</span>      <span style="color:#66d9ef">func</span>() <span style="color:#66d9ef">bool</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">useWatchList</span>      <span style="color:#66d9ef">bool</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><strong>Lifecycle</strong>:</p>
+<div class="mermaid-diagram"><img src="/images/diagram_1eb9d769877d6fe1.svg" alt="Diagram" /></div>
+<h4 id="2-deltafifo">2. DeltaFIFO</h4>
+<p>DeltaFIFO is a queue that tracks changes (deltas) to objects.</p>
+<p><strong>Key Features</strong>:</p>
+<ul>
+<li>Stores deltas (changes) rather than just objects</li>
+<li>Ensures FIFO ordering per object</li>
+<li>Supports multiple delta types: Added, Updated, Deleted, Replaced, Sync</li>
+<li>Deduplicates redundant deltas</li>
+<li>Thread-safe</li>
+</ul>
+<p><strong>Delta Types</strong>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">DeltaType</span> <span style="color:#66d9ef">string</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> (
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Added</span>   <span style="color:#a6e22e">DeltaType</span> = <span style="color:#e6db74">&#34;Added&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Updated</span> <span style="color:#a6e22e">DeltaType</span> = <span style="color:#e6db74">&#34;Updated&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Deleted</span> <span style="color:#a6e22e">DeltaType</span> = <span style="color:#e6db74">&#34;Deleted&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Replaced</span> <span style="color:#a6e22e">DeltaType</span> = <span style="color:#e6db74">&#34;Replaced&#34;</span>  <span style="color:#75715e">// From initial LIST</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Sync</span>    <span style="color:#a6e22e">DeltaType</span> = <span style="color:#e6db74">&#34;Sync&#34;</span>       <span style="color:#75715e">// From periodic resync</span>
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Delta</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Type</span>   <span style="color:#a6e22e">DeltaType</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Object</span> <span style="color:#66d9ef">interface</span>{}
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><strong>Example</strong>:</p>
+<div class="mermaid-diagram"><img src="/images/diagram_da1a48e5a4d43832.svg" alt="Diagram" /></div>
+<h4 id="3-indexer">3. Indexer</h4>
+<p>The Indexer is a thread-safe in-memory cache with indexing capabilities.</p>
+<p><strong>Key Features</strong>:</p>
+<ul>
+<li>Thread-safe storage</li>
+<li>Multiple index functions</li>
+<li>Fast lookups by index</li>
+<li>Namespace/name key format</li>
+</ul>
+<p><strong>Interface</strong>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Indexer</span> <span style="color:#66d9ef">interface</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Store</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Index returns the stored objects whose set of indexed values</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// intersects the set of indexed values of the given object</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Index</span>(<span style="color:#a6e22e">indexName</span> <span style="color:#66d9ef">string</span>, <span style="color:#a6e22e">obj</span> <span style="color:#66d9ef">interface</span>{}) ([]<span style="color:#66d9ef">interface</span>{}, <span style="color:#66d9ef">error</span>)
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// IndexKeys returns the storage keys of the stored objects whose</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// set of indexed values for the named index includes the given</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// indexed value</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">IndexKeys</span>(<span style="color:#a6e22e">indexName</span>, <span style="color:#a6e22e">indexedValue</span> <span style="color:#66d9ef">string</span>) ([]<span style="color:#66d9ef">string</span>, <span style="color:#66d9ef">error</span>)
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// ListIndexFuncValues returns all the indexed values of the given index</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">ListIndexFuncValues</span>(<span style="color:#a6e22e">indexName</span> <span style="color:#66d9ef">string</span>) []<span style="color:#66d9ef">string</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// ByIndex returns the stored objects whose set of indexed values</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// for the named index includes the given indexed value</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">ByIndex</span>(<span style="color:#a6e22e">indexName</span>, <span style="color:#a6e22e">indexedValue</span> <span style="color:#66d9ef">string</span>) ([]<span style="color:#66d9ef">interface</span>{}, <span style="color:#66d9ef">error</span>)
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// GetIndexers return the indexers</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">GetIndexers</span>() <span style="color:#a6e22e">Indexers</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// AddIndexers adds more indexers to this store</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">AddIndexers</span>(<span style="color:#a6e22e">newIndexers</span> <span style="color:#a6e22e">Indexers</span>) <span style="color:#66d9ef">error</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><strong>Common Index Functions</strong>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Index by namespace</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">NamespaceIndexFunc</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">obj</span> <span style="color:#66d9ef">interface</span>{}) ([]<span style="color:#66d9ef">string</span>, <span style="color:#66d9ef">error</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">meta</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">meta</span>.<span style="color:#a6e22e">Accessor</span>(<span style="color:#a6e22e">obj</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> []<span style="color:#66d9ef">string</span>{<span style="color:#e6db74">&#34;&#34;</span>}, <span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Errorf</span>(<span style="color:#e6db74">&#34;object has no meta: %v&#34;</span>, <span style="color:#a6e22e">err</span>)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> []<span style="color:#66d9ef">string</span>{<span style="color:#a6e22e">meta</span>.<span style="color:#a6e22e">GetNamespace</span>()}, <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Index by labels</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">LabelIndexFunc</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">obj</span> <span style="color:#66d9ef">interface</span>{}) ([]<span style="color:#66d9ef">string</span>, <span style="color:#66d9ef">error</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">meta</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">meta</span>.<span style="color:#a6e22e">Accessor</span>(<span style="color:#a6e22e">obj</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>, <span style="color:#a6e22e">err</span>
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">labels</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">meta</span>.<span style="color:#a6e22e">GetLabels</span>()
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">keys</span> []<span style="color:#66d9ef">string</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">for</span> <span style="color:#a6e22e">k</span>, <span style="color:#a6e22e">v</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">labels</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">keys</span> = append(<span style="color:#a6e22e">keys</span>, <span style="color:#a6e22e">k</span><span style="color:#f92672">+</span><span style="color:#e6db74">&#34;=&#34;</span><span style="color:#f92672">+</span><span style="color:#a6e22e">v</span>)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">keys</span>, <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h4 id="4-sharedinformer">4. SharedInformer</h4>
+<p>SharedInformer combines Reflector, DeltaFIFO, and Indexer into a high-level abstraction.</p>
+<p><strong>Key Features</strong>:</p>
+<ul>
+<li>Shared cache across multiple event handlers</li>
+<li>Automatic LIST and WATCH management</li>
+<li>Periodic resync capability</li>
+<li>Event handler registration</li>
+<li>Thread-safe</li>
+</ul>
+<p><strong>Interface</strong>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">SharedInformer</span> <span style="color:#66d9ef">interface</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// AddEventHandler adds an event handler</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">AddEventHandler</span>(<span style="color:#a6e22e">handler</span> <span style="color:#a6e22e">ResourceEventHandler</span>) (<span style="color:#a6e22e">ResourceEventHandlerRegistration</span>, <span style="color:#66d9ef">error</span>)
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// AddEventHandlerWithResyncPeriod adds an event handler with a custom resync period</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">AddEventHandlerWithResyncPeriod</span>(<span style="color:#a6e22e">handler</span> <span style="color:#a6e22e">ResourceEventHandler</span>, <span style="color:#a6e22e">resyncPeriod</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Duration</span>) (<span style="color:#a6e22e">ResourceEventHandlerRegistration</span>, <span style="color:#66d9ef">error</span>)
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// RemoveEventHandler removes an event handler</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">RemoveEventHandler</span>(<span style="color:#a6e22e">handle</span> <span style="color:#a6e22e">ResourceEventHandlerRegistration</span>) <span style="color:#66d9ef">error</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// GetStore returns the informer&#39;s local cache</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">GetStore</span>() <span style="color:#a6e22e">Store</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// GetController is deprecated</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">GetController</span>() <span style="color:#a6e22e">Controller</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Run starts the informer</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Run</span>(<span style="color:#a6e22e">stopCh</span> <span style="color:#f92672">&lt;-</span><span style="color:#66d9ef">chan</span> <span style="color:#66d9ef">struct</span>{})
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// HasSynced returns true if the informer&#39;s store has been synced at least once</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">HasSynced</span>() <span style="color:#66d9ef">bool</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// LastSyncResourceVersion returns the resource version observed when last synced</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">LastSyncResourceVersion</span>() <span style="color:#66d9ef">string</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// SetWatchErrorHandler sets the error handler for watch errors</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">SetWatchErrorHandler</span>(<span style="color:#a6e22e">handler</span> <span style="color:#a6e22e">WatchErrorHandler</span>) <span style="color:#66d9ef">error</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// SetTransform sets a transform function</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">SetTransform</span>(<span style="color:#a6e22e">f</span> <span style="color:#a6e22e">TransformFunc</span>) <span style="color:#66d9ef">error</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// IsStopped returns true if the informer has been stopped</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">IsStopped</span>() <span style="color:#66d9ef">bool</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><strong>Event Handlers</strong>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">ResourceEventHandler</span> <span style="color:#66d9ef">interface</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">OnAdd</span>(<span style="color:#a6e22e">obj</span> <span style="color:#66d9ef">interface</span>{}, <span style="color:#a6e22e">isInInitialList</span> <span style="color:#66d9ef">bool</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">OnUpdate</span>(<span style="color:#a6e22e">oldObj</span>, <span style="color:#a6e22e">newObj</span> <span style="color:#66d9ef">interface</span>{})
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">OnDelete</span>(<span style="color:#a6e22e">obj</span> <span style="color:#66d9ef">interface</span>{})
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Convenience implementation</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">ResourceEventHandlerFuncs</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">AddFunc</span>    <span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">obj</span> <span style="color:#66d9ef">interface</span>{}, <span style="color:#a6e22e">isInInitialList</span> <span style="color:#66d9ef">bool</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">UpdateFunc</span> <span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">oldObj</span>, <span style="color:#a6e22e">newObj</span> <span style="color:#66d9ef">interface</span>{})
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">DeleteFunc</span> <span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">obj</span> <span style="color:#66d9ef">interface</span>{})
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><strong>Example Usage</strong>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Create informer</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">informerFactory</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">informers</span>.<span style="color:#a6e22e">NewSharedInformerFactory</span>(<span style="color:#a6e22e">clientset</span>, <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Minute</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">podInformer</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">informerFactory</span>.<span style="color:#a6e22e">Core</span>().<span style="color:#a6e22e">V1</span>().<span style="color:#a6e22e">Pods</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Add event handler</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">podInformer</span>.<span style="color:#a6e22e">Informer</span>().<span style="color:#a6e22e">AddEventHandler</span>(<span style="color:#a6e22e">cache</span>.<span style="color:#a6e22e">ResourceEventHandlerFuncs</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">AddFunc</span>: <span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">obj</span> <span style="color:#66d9ef">interface</span>{}, <span style="color:#a6e22e">isInInitialList</span> <span style="color:#66d9ef">bool</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">pod</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">obj</span>.(<span style="color:#f92672">*</span><span style="color:#a6e22e">corev1</span>.<span style="color:#a6e22e">Pod</span>)
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;Pod added: %s/%s\n&#34;</span>, <span style="color:#a6e22e">pod</span>.<span style="color:#a6e22e">Namespace</span>, <span style="color:#a6e22e">pod</span>.<span style="color:#a6e22e">Name</span>)
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">UpdateFunc</span>: <span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">oldObj</span>, <span style="color:#a6e22e">newObj</span> <span style="color:#66d9ef">interface</span>{}) {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">oldPod</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">oldObj</span>.(<span style="color:#f92672">*</span><span style="color:#a6e22e">corev1</span>.<span style="color:#a6e22e">Pod</span>)
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">newPod</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">newObj</span>.(<span style="color:#f92672">*</span><span style="color:#a6e22e">corev1</span>.<span style="color:#a6e22e">Pod</span>)
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">oldPod</span>.<span style="color:#a6e22e">ResourceVersion</span> <span style="color:#f92672">!=</span> <span style="color:#a6e22e">newPod</span>.<span style="color:#a6e22e">ResourceVersion</span> {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;Pod updated: %s/%s\n&#34;</span>, <span style="color:#a6e22e">newPod</span>.<span style="color:#a6e22e">Namespace</span>, <span style="color:#a6e22e">newPod</span>.<span style="color:#a6e22e">Name</span>)
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">DeleteFunc</span>: <span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">obj</span> <span style="color:#66d9ef">interface</span>{}) {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">pod</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">obj</span>.(<span style="color:#f92672">*</span><span style="color:#a6e22e">corev1</span>.<span style="color:#a6e22e">Pod</span>)
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;Pod deleted: %s/%s\n&#34;</span>, <span style="color:#a6e22e">pod</span>.<span style="color:#a6e22e">Namespace</span>, <span style="color:#a6e22e">pod</span>.<span style="color:#a6e22e">Name</span>)
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>})
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Start informer</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">stopCh</span> <span style="color:#f92672">:=</span> make(<span style="color:#66d9ef">chan</span> <span style="color:#66d9ef">struct</span>{})
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">defer</span> close(<span style="color:#a6e22e">stopCh</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">informerFactory</span>.<span style="color:#a6e22e">Start</span>(<span style="color:#a6e22e">stopCh</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Wait for cache sync</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">cache</span>.<span style="color:#a6e22e">WaitForCacheSync</span>(<span style="color:#a6e22e">stopCh</span>, <span style="color:#a6e22e">podInformer</span>.<span style="color:#a6e22e">Informer</span>().<span style="color:#a6e22e">HasSynced</span>) {
+</span></span><span style="display:flex;"><span>    panic(<span style="color:#e6db74">&#34;failed to sync cache&#34;</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h4 id="5-lister">5. Lister</h4>
+<p>Listers provide a read-only interface to the cached data.</p>
+<p><strong>Key Features</strong>:</p>
+<ul>
+<li>Read from local cache (no API calls)</li>
+<li>Namespace-scoped and cluster-scoped operations</li>
+<li>Label selector support</li>
+<li>Thread-safe</li>
+</ul>
+<p><strong>Interface</strong>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">PodLister</span> <span style="color:#66d9ef">interface</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// List lists all Pods in the indexer</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">List</span>(<span style="color:#a6e22e">selector</span> <span style="color:#a6e22e">labels</span>.<span style="color:#a6e22e">Selector</span>) ([]<span style="color:#f92672">*</span><span style="color:#a6e22e">v1</span>.<span style="color:#a6e22e">Pod</span>, <span style="color:#66d9ef">error</span>)
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Pods returns an object that can list and get Pods in a namespace</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Pods</span>(<span style="color:#a6e22e">namespace</span> <span style="color:#66d9ef">string</span>) <span style="color:#a6e22e">PodNamespaceLister</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">PodNamespaceLister</span> <span style="color:#66d9ef">interface</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// List lists all Pods in the namespace</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">List</span>(<span style="color:#a6e22e">selector</span> <span style="color:#a6e22e">labels</span>.<span style="color:#a6e22e">Selector</span>) ([]<span style="color:#f92672">*</span><span style="color:#a6e22e">v1</span>.<span style="color:#a6e22e">Pod</span>, <span style="color:#66d9ef">error</span>)
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Get retrieves the Pod from the indexer for a given namespace and name</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Get</span>(<span style="color:#a6e22e">name</span> <span style="color:#66d9ef">string</span>) (<span style="color:#f92672">*</span><span style="color:#a6e22e">v1</span>.<span style="color:#a6e22e">Pod</span>, <span style="color:#66d9ef">error</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><strong>Example Usage</strong>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Get lister from informer</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">podLister</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">podInformer</span>.<span style="color:#a6e22e">Lister</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// List all pods</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">allPods</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">podLister</span>.<span style="color:#a6e22e">List</span>(<span style="color:#a6e22e">labels</span>.<span style="color:#a6e22e">Everything</span>())
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// List pods with label selector</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">selector</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">labels</span>.<span style="color:#a6e22e">SelectorFromSet</span>(<span style="color:#a6e22e">labels</span>.<span style="color:#a6e22e">Set</span>{<span style="color:#e6db74">&#34;app&#34;</span>: <span style="color:#e6db74">&#34;myapp&#34;</span>})
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">appPods</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">podLister</span>.<span style="color:#a6e22e">List</span>(<span style="color:#a6e22e">selector</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Get specific pod</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">pod</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">podLister</span>.<span style="color:#a6e22e">Pods</span>(<span style="color:#e6db74">&#34;default&#34;</span>).<span style="color:#a6e22e">Get</span>(<span style="color:#e6db74">&#34;my-pod&#34;</span>)
+</span></span></code></pre></div><h3 id="sharedinformerfactory">SharedInformerFactory</h3>
+<p>The SharedInformerFactory creates and manages multiple informers efficiently.</p>
+<p><strong>Key Features</strong>:</p>
+<ul>
+<li>Shares HTTP connections across informers</li>
+<li>Manages informer lifecycle</li>
+<li>Configurable default resync period</li>
+<li>Namespace filtering support</li>
+</ul>
+<p><strong>Example</strong>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Create factory</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">factory</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">informers</span>.<span style="color:#a6e22e">NewSharedInformerFactory</span>(<span style="color:#a6e22e">clientset</span>, <span style="color:#ae81ff">30</span><span style="color:#f92672">*</span><span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Create multiple informers</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">podInformer</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">factory</span>.<span style="color:#a6e22e">Core</span>().<span style="color:#a6e22e">V1</span>().<span style="color:#a6e22e">Pods</span>()
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">deploymentInformer</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">factory</span>.<span style="color:#a6e22e">Apps</span>().<span style="color:#a6e22e">V1</span>().<span style="color:#a6e22e">Deployments</span>()
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">serviceInformer</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">factory</span>.<span style="color:#a6e22e">Core</span>().<span style="color:#a6e22e">V1</span>().<span style="color:#a6e22e">Services</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Start all informers</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">stopCh</span> <span style="color:#f92672">:=</span> make(<span style="color:#66d9ef">chan</span> <span style="color:#66d9ef">struct</span>{})
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">defer</span> close(<span style="color:#a6e22e">stopCh</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">factory</span>.<span style="color:#a6e22e">Start</span>(<span style="color:#a6e22e">stopCh</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Wait for all caches to sync</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">factory</span>.<span style="color:#a6e22e">WaitForCacheSync</span>(<span style="color:#a6e22e">stopCh</span>)
+</span></span></code></pre></div><p><strong>Namespace-Filtered Factory</strong>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Create factory that only watches specific namespace</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">factory</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">informers</span>.<span style="color:#a6e22e">NewSharedInformerFactoryWithOptions</span>(
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">clientset</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#ae81ff">30</span><span style="color:#f92672">*</span><span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">informers</span>.<span style="color:#a6e22e">WithNamespace</span>(<span style="color:#e6db74">&#34;production&#34;</span>),
+</span></span><span style="display:flex;"><span>)
+</span></span></code></pre></div><h2 id="utilworkqueue-package">util/workqueue Package</h2>
+<p><strong>Location</strong>: <code>util/workqueue/</code></p>
+<p>The workqueue package provides rate-limited work queues for controllers.</p>
+<h3 id="queue-types">Queue Types</h3>
+<h4 id="1-basic-queue">1. Basic Queue</h4>
+<p>Simple FIFO queue with deduplication.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Create queue</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">queue</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">workqueue</span>.<span style="color:#a6e22e">New</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Add items</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">queue</span>.<span style="color:#a6e22e">Add</span>(<span style="color:#e6db74">&#34;item1&#34;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">queue</span>.<span style="color:#a6e22e">Add</span>(<span style="color:#e6db74">&#34;item2&#34;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">queue</span>.<span style="color:#a6e22e">Add</span>(<span style="color:#e6db74">&#34;item1&#34;</span>)  <span style="color:#75715e">// Deduplicated</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Get item</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">item</span>, <span style="color:#a6e22e">shutdown</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">queue</span>.<span style="color:#a6e22e">Get</span>()
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> <span style="color:#a6e22e">shutdown</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Process item</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">processItem</span>(<span style="color:#a6e22e">item</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Mark as done</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">queue</span>.<span style="color:#a6e22e">Done</span>(<span style="color:#a6e22e">item</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Shutdown</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">queue</span>.<span style="color:#a6e22e">ShutDown</span>()
+</span></span></code></pre></div><h4 id="2-delaying-queue">2. Delaying Queue</h4>
+<p>Queue with delayed item processing.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Create delaying queue</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">queue</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">workqueue</span>.<span style="color:#a6e22e">NewDelayingQueue</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Add item with delay</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">queue</span>.<span style="color:#a6e22e">AddAfter</span>(<span style="color:#e6db74">&#34;item1&#34;</span>, <span style="color:#ae81ff">5</span><span style="color:#f92672">*</span><span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Item will be available after 5 seconds</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">item</span>, <span style="color:#a6e22e">shutdown</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">queue</span>.<span style="color:#a6e22e">Get</span>()
+</span></span></code></pre></div><h4 id="3-rate-limited-queue">3. Rate-Limited Queue</h4>
+<p>Queue with rate limiting and exponential backoff.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Create rate-limited queue</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">queue</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">workqueue</span>.<span style="color:#a6e22e">NewRateLimitingQueue</span>(
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">workqueue</span>.<span style="color:#a6e22e">DefaultControllerRateLimiter</span>(),
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Add item</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">queue</span>.<span style="color:#a6e22e">Add</span>(<span style="color:#e6db74">&#34;item1&#34;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Add item with rate limiting (after failure)</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">queue</span>.<span style="color:#a6e22e">AddRateLimited</span>(<span style="color:#e6db74">&#34;item1&#34;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Forget item (reset rate limit)</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">queue</span>.<span style="color:#a6e22e">Forget</span>(<span style="color:#e6db74">&#34;item1&#34;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Get number of times item has been requeued</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">numRequeues</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">queue</span>.<span style="color:#a6e22e">NumRequeues</span>(<span style="color:#e6db74">&#34;item1&#34;</span>)
+</span></span></code></pre></div><h3 id="rate-limiters">Rate Limiters</h3>
+<h4 id="built-in-rate-limiters">Built-in Rate Limiters</h4>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// 1. Bucket rate limiter</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">bucketLimiter</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">workqueue</span>.<span style="color:#a6e22e">NewItemExponentialFailureRateLimiter</span>(
+</span></span><span style="display:flex;"><span>    <span style="color:#ae81ff">5</span><span style="color:#f92672">*</span><span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Millisecond</span>,  <span style="color:#75715e">// Base delay</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#ae81ff">1000</span><span style="color:#f92672">*</span><span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>,    <span style="color:#75715e">// Max delay</span>
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 2. Exponential backoff</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">backoffLimiter</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">workqueue</span>.<span style="color:#a6e22e">NewItemExponentialFailureRateLimiter</span>(
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>,      <span style="color:#75715e">// Base delay</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#ae81ff">5</span><span style="color:#f92672">*</span><span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Minute</span>,    <span style="color:#75715e">// Max delay</span>
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 3. Max retries limiter</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">maxRetriesLimiter</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">workqueue</span>.<span style="color:#a6e22e">NewMaxOfRateLimiter</span>(
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">workqueue</span>.<span style="color:#a6e22e">NewItemExponentialFailureRateLimiter</span>(<span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>, <span style="color:#ae81ff">5</span><span style="color:#f92672">*</span><span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Minute</span>),
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">workqueue</span>.<span style="color:#a6e22e">BucketRateLimiter</span>{<span style="color:#a6e22e">Limiter</span>: <span style="color:#a6e22e">rate</span>.<span style="color:#a6e22e">NewLimiter</span>(<span style="color:#a6e22e">rate</span>.<span style="color:#a6e22e">Limit</span>(<span style="color:#ae81ff">10</span>), <span style="color:#ae81ff">100</span>)},
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 4. Default controller rate limiter</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">defaultLimiter</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">workqueue</span>.<span style="color:#a6e22e">DefaultControllerRateLimiter</span>()
+</span></span></code></pre></div><h4 id="custom-rate-limiter">Custom Rate Limiter</h4>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">CustomRateLimiter</span> <span style="color:#66d9ef">struct</span>{}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">r</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">CustomRateLimiter</span>) <span style="color:#a6e22e">When</span>(<span style="color:#a6e22e">item</span> <span style="color:#66d9ef">interface</span>{}) <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Duration</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Return delay duration based on item</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">r</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">CustomRateLimiter</span>) <span style="color:#a6e22e">Forget</span>(<span style="color:#a6e22e">item</span> <span style="color:#66d9ef">interface</span>{}) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Reset rate limit state for item</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">r</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">CustomRateLimiter</span>) <span style="color:#a6e22e">NumRequeues</span>(<span style="color:#a6e22e">item</span> <span style="color:#66d9ef">interface</span>{}) <span style="color:#66d9ef">int</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Return number of times item has been requeued</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="controller-pattern-implementation">Controller Pattern Implementation</h2>
+<h3 id="complete-controller-example">Complete Controller Example</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Controller</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">clientset</span>      <span style="color:#a6e22e">kubernetes</span>.<span style="color:#a6e22e">Interface</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">podLister</span>      <span style="color:#a6e22e">corelisters</span>.<span style="color:#a6e22e">PodLister</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">podSynced</span>      <span style="color:#a6e22e">cache</span>.<span style="color:#a6e22e">InformerSynced</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">workqueue</span>      <span style="color:#a6e22e">workqueue</span>.<span style="color:#a6e22e">RateLimitingInterface</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">NewController</span>(
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">clientset</span> <span style="color:#a6e22e">kubernetes</span>.<span style="color:#a6e22e">Interface</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">podInformer</span> <span style="color:#a6e22e">coreinformers</span>.<span style="color:#a6e22e">PodInformer</span>,
+</span></span><span style="display:flex;"><span>) <span style="color:#f92672">*</span><span style="color:#a6e22e">Controller</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">controller</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">Controller</span>{
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">clientset</span>:  <span style="color:#a6e22e">clientset</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">podLister</span>:  <span style="color:#a6e22e">podInformer</span>.<span style="color:#a6e22e">Lister</span>(),
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">podSynced</span>:  <span style="color:#a6e22e">podInformer</span>.<span style="color:#a6e22e">Informer</span>().<span style="color:#a6e22e">HasSynced</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">workqueue</span>:  <span style="color:#a6e22e">workqueue</span>.<span style="color:#a6e22e">NewRateLimitingQueue</span>(<span style="color:#a6e22e">workqueue</span>.<span style="color:#a6e22e">DefaultControllerRateLimiter</span>()),
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Add event handlers</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">podInformer</span>.<span style="color:#a6e22e">Informer</span>().<span style="color:#a6e22e">AddEventHandler</span>(<span style="color:#a6e22e">cache</span>.<span style="color:#a6e22e">ResourceEventHandlerFuncs</span>{
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">AddFunc</span>: <span style="color:#a6e22e">controller</span>.<span style="color:#a6e22e">enqueuePod</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">UpdateFunc</span>: <span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">old</span>, <span style="color:#a6e22e">new</span> <span style="color:#66d9ef">interface</span>{}) {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">controller</span>.<span style="color:#a6e22e">enqueuePod</span>(<span style="color:#a6e22e">new</span>)
+</span></span><span style="display:flex;"><span>        },
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">DeleteFunc</span>: <span style="color:#a6e22e">controller</span>.<span style="color:#a6e22e">enqueuePod</span>,
+</span></span><span style="display:flex;"><span>    })
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">controller</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">c</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">Controller</span>) <span style="color:#a6e22e">enqueuePod</span>(<span style="color:#a6e22e">obj</span> <span style="color:#66d9ef">interface</span>{}) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">key</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">cache</span>.<span style="color:#a6e22e">MetaNamespaceKeyFunc</span>(<span style="color:#a6e22e">obj</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">utilruntime</span>.<span style="color:#a6e22e">HandleError</span>(<span style="color:#a6e22e">err</span>)
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">workqueue</span>.<span style="color:#a6e22e">Add</span>(<span style="color:#a6e22e">key</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">c</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">Controller</span>) <span style="color:#a6e22e">Run</span>(<span style="color:#a6e22e">workers</span> <span style="color:#66d9ef">int</span>, <span style="color:#a6e22e">stopCh</span> <span style="color:#f92672">&lt;-</span><span style="color:#66d9ef">chan</span> <span style="color:#66d9ef">struct</span>{}) <span style="color:#66d9ef">error</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">defer</span> <span style="color:#a6e22e">utilruntime</span>.<span style="color:#a6e22e">HandleCrash</span>()
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">defer</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">workqueue</span>.<span style="color:#a6e22e">ShutDown</span>()
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Wait for cache sync</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">cache</span>.<span style="color:#a6e22e">WaitForCacheSync</span>(<span style="color:#a6e22e">stopCh</span>, <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">podSynced</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Errorf</span>(<span style="color:#e6db74">&#34;failed to wait for caches to sync&#34;</span>)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Start workers</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">for</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">:=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> &lt; <span style="color:#a6e22e">workers</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">go</span> <span style="color:#a6e22e">wait</span>.<span style="color:#a6e22e">Until</span>(<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">runWorker</span>, <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>, <span style="color:#a6e22e">stopCh</span>)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">stopCh</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">c</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">Controller</span>) <span style="color:#a6e22e">runWorker</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">for</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">processNextWorkItem</span>() {
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">c</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">Controller</span>) <span style="color:#a6e22e">processNextWorkItem</span>() <span style="color:#66d9ef">bool</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">obj</span>, <span style="color:#a6e22e">shutdown</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">workqueue</span>.<span style="color:#a6e22e">Get</span>()
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">shutdown</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">obj</span> <span style="color:#66d9ef">interface</span>{}) <span style="color:#66d9ef">error</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">defer</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">workqueue</span>.<span style="color:#a6e22e">Done</span>(<span style="color:#a6e22e">obj</span>)
+</span></span><span style="display:flex;"><span>        
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">key</span>, <span style="color:#a6e22e">ok</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">obj</span>.(<span style="color:#66d9ef">string</span>)
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">ok</span> {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">workqueue</span>.<span style="color:#a6e22e">Forget</span>(<span style="color:#a6e22e">obj</span>)
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Errorf</span>(<span style="color:#e6db74">&#34;expected string in workqueue but got %#v&#34;</span>, <span style="color:#a6e22e">obj</span>)
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>        
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">syncHandler</span>(<span style="color:#a6e22e">key</span>); <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">workqueue</span>.<span style="color:#a6e22e">AddRateLimited</span>(<span style="color:#a6e22e">key</span>)
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Errorf</span>(<span style="color:#e6db74">&#34;error syncing &#39;%s&#39;: %s, requeuing&#34;</span>, <span style="color:#a6e22e">key</span>, <span style="color:#a6e22e">err</span>.<span style="color:#a6e22e">Error</span>())
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>        
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">workqueue</span>.<span style="color:#a6e22e">Forget</span>(<span style="color:#a6e22e">obj</span>)
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>    }(<span style="color:#a6e22e">obj</span>)
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">utilruntime</span>.<span style="color:#a6e22e">HandleError</span>(<span style="color:#a6e22e">err</span>)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">c</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">Controller</span>) <span style="color:#a6e22e">syncHandler</span>(<span style="color:#a6e22e">key</span> <span style="color:#66d9ef">string</span>) <span style="color:#66d9ef">error</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Parse namespace and name</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">namespace</span>, <span style="color:#a6e22e">name</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">cache</span>.<span style="color:#a6e22e">SplitMetaNamespaceKey</span>(<span style="color:#a6e22e">key</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">err</span>
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Get object from cache</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">pod</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">podLister</span>.<span style="color:#a6e22e">Pods</span>(<span style="color:#a6e22e">namespace</span>).<span style="color:#a6e22e">Get</span>(<span style="color:#a6e22e">name</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">errors</span>.<span style="color:#a6e22e">IsNotFound</span>(<span style="color:#a6e22e">err</span>) {
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// Object was deleted</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">err</span>
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Reconciliation logic here</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;Syncing pod: %s/%s\n&#34;</span>, <span style="color:#a6e22e">pod</span>.<span style="color:#a6e22e">Namespace</span>, <span style="color:#a6e22e">pod</span>.<span style="color:#a6e22e">Name</span>)
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="controller-flow">Controller Flow</h3>
+<div class="mermaid-diagram"><img src="/images/diagram_1fd8e4ae20aa5979.svg" alt="Diagram" /></div>
+<h2 id="toolsleaderelection-package">tools/leaderelection Package</h2>
+<p><strong>Location</strong>: <code>tools/leaderelection/</code></p>
+<p>The leaderelection package provides leader election for high-availability controllers.</p>
+<h3 id="leader-election-concept">Leader Election Concept</h3>
+<div class="mermaid-diagram"><img src="/images/diagram_338de836e2dd37d1.svg" alt="Diagram" /></div>
+<h3 id="leader-election-configuration">Leader Election Configuration</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">import</span> (
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;k8s.io/client-go/tools/leaderelection&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;k8s.io/client-go/tools/leaderelection/resourcelock&#34;</span>
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Create resource lock</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">lock</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">resourcelock</span>.<span style="color:#a6e22e">LeaseLock</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">LeaseMeta</span>: <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">ObjectMeta</span>{
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Name</span>:      <span style="color:#e6db74">&#34;my-controller&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Namespace</span>: <span style="color:#e6db74">&#34;kube-system&#34;</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Client</span>: <span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">CoordinationV1</span>(),
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">LockConfig</span>: <span style="color:#a6e22e">resourcelock</span>.<span style="color:#a6e22e">ResourceLockConfig</span>{
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Identity</span>: <span style="color:#e6db74">&#34;pod-1&#34;</span>,  <span style="color:#75715e">// Unique identifier for this instance</span>
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Configure leader election</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">leaderElectionConfig</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">leaderelection</span>.<span style="color:#a6e22e">LeaderElectionConfig</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Lock</span>:          <span style="color:#a6e22e">lock</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">LeaseDuration</span>: <span style="color:#ae81ff">15</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>,  <span style="color:#75715e">// Duration that non-leader candidates will wait to force acquire leadership</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">RenewDeadline</span>: <span style="color:#ae81ff">10</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>,  <span style="color:#75715e">// Duration that the acting leader will retry refreshing leadership before giving up</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">RetryPeriod</span>:   <span style="color:#ae81ff">2</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>,   <span style="color:#75715e">// Duration the LeaderElector clients should wait between tries of actions</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Callbacks</span>: <span style="color:#a6e22e">leaderelection</span>.<span style="color:#a6e22e">LeaderCallbacks</span>{
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">OnStartedLeading</span>: <span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">ctx</span> <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">Context</span>) {
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// Start controller</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">controller</span>.<span style="color:#a6e22e">Run</span>(<span style="color:#a6e22e">ctx</span>)
+</span></span><span style="display:flex;"><span>        },
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">OnStoppedLeading</span>: <span style="color:#66d9ef">func</span>() {
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// Cleanup</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;Lost leadership&#34;</span>)
+</span></span><span style="display:flex;"><span>        },
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">OnNewLeader</span>: <span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">identity</span> <span style="color:#66d9ef">string</span>) {
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">identity</span> <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;pod-1&#34;</span> {
+</span></span><span style="display:flex;"><span>                <span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>            }
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;New leader elected: %s\n&#34;</span>, <span style="color:#a6e22e">identity</span>)
+</span></span><span style="display:flex;"><span>        },
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Run leader election</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">ctx</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">Background</span>()
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">leaderelection</span>.<span style="color:#a6e22e">RunOrDie</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">leaderElectionConfig</span>)
+</span></span></code></pre></div><h3 id="resource-lock-types">Resource Lock Types</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// 1. Lease lock (recommended)</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">lock</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">resourcelock</span>.<span style="color:#a6e22e">LeaseLock</span>{<span style="color:#f92672">...</span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 2. ConfigMap lock (legacy)</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">lock</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">resourcelock</span>.<span style="color:#a6e22e">ConfigMapLock</span>{<span style="color:#f92672">...</span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 3. Endpoint lock (legacy)</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">lock</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">resourcelock</span>.<span style="color:#a6e22e">EndpointsLock</span>{<span style="color:#f92672">...</span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 4. Multi-lock (for migration)</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">lock</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">resourcelock</span>.<span style="color:#a6e22e">MultiLock</span>{<span style="color:#f92672">...</span>}
+</span></span></code></pre></div><h2 id="best-practices">Best Practices</h2>
+<h3 id="1-use-informers-not-direct-watches">1. Use Informers, Not Direct Watches</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// ✅ Good: Use informer with cache</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">podInformer</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">informerFactory</span>.<span style="color:#a6e22e">Core</span>().<span style="color:#a6e22e">V1</span>().<span style="color:#a6e22e">Pods</span>()
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">pod</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">podInformer</span>.<span style="color:#a6e22e">Lister</span>().<span style="color:#a6e22e">Pods</span>(<span style="color:#e6db74">&#34;default&#34;</span>).<span style="color:#a6e22e">Get</span>(<span style="color:#e6db74">&#34;my-pod&#34;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// ❌ Bad: Direct API call</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">pod</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">CoreV1</span>().<span style="color:#a6e22e">Pods</span>(<span style="color:#e6db74">&#34;default&#34;</span>).<span style="color:#a6e22e">Get</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#e6db74">&#34;my-pod&#34;</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">GetOptions</span>{})
+</span></span></code></pre></div><h3 id="2-enqueue-keys-not-objects">2. Enqueue Keys, Not Objects</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// ✅ Good: Enqueue key</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">key</span>, <span style="color:#a6e22e">_</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">cache</span>.<span style="color:#a6e22e">MetaNamespaceKeyFunc</span>(<span style="color:#a6e22e">obj</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">workqueue</span>.<span style="color:#a6e22e">Add</span>(<span style="color:#a6e22e">key</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// ❌ Bad: Enqueue object (wastes memory)</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">workqueue</span>.<span style="color:#a6e22e">Add</span>(<span style="color:#a6e22e">obj</span>)
+</span></span></code></pre></div><h3 id="3-use-rate-limited-queues">3. Use Rate-Limited Queues</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// ✅ Good: Rate-limited queue with backoff</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">queue</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">workqueue</span>.<span style="color:#a6e22e">NewRateLimitingQueue</span>(<span style="color:#a6e22e">workqueue</span>.<span style="color:#a6e22e">DefaultControllerRateLimiter</span>())
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// ❌ Bad: Basic queue (no retry logic)</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">queue</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">workqueue</span>.<span style="color:#a6e22e">New</span>()
+</span></span></code></pre></div><h3 id="4-handle-errors-properly">4. Handle Errors Properly</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// ✅ Good: Requeue on error, forget on success</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">syncHandler</span>(<span style="color:#a6e22e">key</span>); <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">workqueue</span>.<span style="color:#a6e22e">AddRateLimited</span>(<span style="color:#a6e22e">key</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">err</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">workqueue</span>.<span style="color:#a6e22e">Forget</span>(<span style="color:#a6e22e">key</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// ❌ Bad: No retry on error</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">syncHandler</span>(<span style="color:#a6e22e">key</span>); <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">err</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="5-wait-for-cache-sync">5. Wait for Cache Sync</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// ✅ Good: Wait for cache sync before processing</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">cache</span>.<span style="color:#a6e22e">WaitForCacheSync</span>(<span style="color:#a6e22e">stopCh</span>, <span style="color:#a6e22e">informer</span>.<span style="color:#a6e22e">HasSynced</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Errorf</span>(<span style="color:#e6db74">&#34;failed to sync cache&#34;</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// ❌ Bad: Start processing immediately</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">go</span> <span style="color:#a6e22e">controller</span>.<span style="color:#a6e22e">Run</span>()
+</span></span></code></pre></div><h3 id="6-use-multiple-workers">6. Use Multiple Workers</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// ✅ Good: Multiple workers for parallelism</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">for</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">:=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> &lt; <span style="color:#ae81ff">5</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">go</span> <span style="color:#a6e22e">wait</span>.<span style="color:#a6e22e">Until</span>(<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">runWorker</span>, <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>, <span style="color:#a6e22e">stopCh</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// ❌ Bad: Single worker (bottleneck)</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">go</span> <span style="color:#a6e22e">wait</span>.<span style="color:#a6e22e">Until</span>(<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">runWorker</span>, <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>, <span style="color:#a6e22e">stopCh</span>)
+</span></span></code></pre></div><h3 id="7-implement-proper-shutdown">7. Implement Proper Shutdown</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// ✅ Good: Graceful shutdown</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">defer</span> <span style="color:#a6e22e">utilruntime</span>.<span style="color:#a6e22e">HandleCrash</span>()
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">defer</span> <span style="color:#a6e22e">workqueue</span>.<span style="color:#a6e22e">ShutDown</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">stopCh</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Wait for workers to finish</span>
+</span></span></code></pre></div><h2 id="summary">Summary</h2>
+<p>The controller infrastructure in <code>client-go</code> provides:</p>
+<ul>
+<li><strong>Informers</strong>: Efficient caching and event notification</li>
+<li><strong>Reflector</strong>: LIST and WATCH management</li>
+<li><strong>DeltaFIFO</strong>: Change tracking queue</li>
+<li><strong>Indexer</strong>: Thread-safe in-memory cache</li>
+<li><strong>Listers</strong>: Read-only cache interface</li>
+<li><strong>WorkQueue</strong>: Rate-limited work queues</li>
+<li><strong>Leader Election</strong>: High-availability support</li>
+</ul>
+<p>These components work together to enable efficient, scalable, and resilient controllers that form the backbone of Kubernetes&rsquo; control plane.</p>
+
+</article>
+
+            </div>
+            
+            <footer class="content-footer">
+                <p>&copy; 2026 The Kubernetes Authors | <a href="https://www.apache.org/licenses/LICENSE-2.0">Apache License 2.0</a></p>
+            </footer>
+        </main>
+    </div>
+
+    <script src="/js/main.js"></script>
+</body>
+</html>

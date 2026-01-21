@@ -1,0 +1,11 @@
+<ul class="menu-list">
+    {{ $currentPage := . }}
+    {{ range .Site.RegularPages.ByWeight }}
+    <li class="menu-item {{ if eq .Permalink $currentPage.Permalink }}active{{ end }}">
+        <a href="{{ .Permalink }}" title="{{ .Title }}">
+            <span class="menu-icon">📄</span>
+            <span class="menu-text">{{ .Title }}</span>
+        </a>
+    </li>
+    {{ end }}
+</ul>

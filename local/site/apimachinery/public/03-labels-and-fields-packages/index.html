@@ -1,0 +1,366 @@
+<!doctype html><html lang=en><head><meta charset=UTF-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Labels And Fields Packages - k8s.io/apimachinery Documentation</title><link rel=stylesheet href=/css/style.css></head><body data-theme=light><div class=container><nav id=sidebar class=sidebar><div class=sidebar-header><div class=sidebar-controls><button id=menu-toggle class=menu-toggle title="Toggle Menu">
+<span class=hamburger></span>
+</button>
+<button id=theme-toggle class=theme-toggle title="Toggle Theme">
+<span class=theme-icon>🌙</span></button></div><h2>k8s.io/apimachinery Documentation</h2></div><div class=sidebar-content><ul class=menu><li><a href=/01-runtime-package/>Runtime Package</a></li><li><a href=/02-api-meta-package/>Api Meta Package</a></li><li><a href=/03-labels-and-fields-packages/ class=active>Labels And Fields Packages</a></li><li><a href=/04-watch-package/>Watch Package</a></li><li><a href=/05-serialization/>Serialization</a></li><li><a href=/06-utility-packages/>Utility Packages</a></li><li><a href=/07-conversion-and-resources/>Conversion And Resources</a></li><li><a href=/00-overview/>Overview</a></li></ul></div></nav><div class=resize-handle id=resize-handle></div><main class=main-content><article class=content><h1>Labels And Fields Packages</h1><div class=page-content><h2 id=overview>Overview</h2><p>The <code>pkg/labels</code> and <code>pkg/fields</code> packages provide selector functionality for filtering Kubernetes objects. Labels selectors filter based on object labels, while field selectors filter based on object field values. Both packages share similar APIs and design patterns.</p><h2 id=purpose>Purpose</h2><p>These packages provide:</p><ol><li><strong>Label Selectors</strong>: Filter objects by label key-value pairs</li><li><strong>Field Selectors</strong>: Filter objects by field values</li><li><strong>Requirement System</strong>: Express complex selection criteria</li><li><strong>Set Operations</strong>: Match selectors against label/field sets</li><li><strong>Parsing</strong>: Parse selector strings from user input</li></ol><h2 id=architecture>Architecture</h2><p><img src=/diagrams/diagram-de636ac2.svg alt=Diagram></p><h2 id=labels-package>Labels Package</h2><h3 id=selector-interface>Selector Interface</h3><p>The core interface for label selection:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>Selector</span> <span style=color:#66d9ef>interface</span> {
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// Matches returns true if this selector matches the given set of labels</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Matches</span>(<span style=color:#a6e22e>Labels</span>) <span style=color:#66d9ef>bool</span>
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// Empty returns true if this selector does not restrict the selection space</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Empty</span>() <span style=color:#66d9ef>bool</span>
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// String returns a human readable string that represents this selector</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>String</span>() <span style=color:#66d9ef>string</span>
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// Add adds requirements to the Selector</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Add</span>(<span style=color:#a6e22e>r</span> <span style=color:#f92672>...</span><span style=color:#a6e22e>Requirement</span>) <span style=color:#a6e22e>Selector</span>
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// Requirements converts this interface into Requirements</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Requirements</span>() (<span style=color:#a6e22e>requirements</span> <span style=color:#a6e22e>Requirements</span>, <span style=color:#a6e22e>selectable</span> <span style=color:#66d9ef>bool</span>)
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// DeepCopySelector makes a deep copy of the selector</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>DeepCopySelector</span>() <span style=color:#a6e22e>Selector</span>
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// RequiresExactMatch allows introspection for single exact match</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>RequiresExactMatch</span>(<span style=color:#a6e22e>label</span> <span style=color:#66d9ef>string</span>) (<span style=color:#a6e22e>value</span> <span style=color:#66d9ef>string</span>, <span style=color:#a6e22e>found</span> <span style=color:#66d9ef>bool</span>)
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=labels-type>Labels Type</h3><p>Represents a set of labels:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>Labels</span> <span style=color:#66d9ef>map</span>[<span style=color:#66d9ef>string</span>]<span style=color:#66d9ef>string</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Alias for convenience</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>Set</span> = <span style=color:#a6e22e>Labels</span>
+</span></span></code></pre></div><p><strong>Methods:</strong></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Has returns true if the label exists</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>ls</span> <span style=color:#a6e22e>Labels</span>) <span style=color:#a6e22e>Has</span>(<span style=color:#a6e22e>label</span> <span style=color:#66d9ef>string</span>) <span style=color:#66d9ef>bool</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Get returns the value for a label</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>ls</span> <span style=color:#a6e22e>Labels</span>) <span style=color:#a6e22e>Get</span>(<span style=color:#a6e22e>label</span> <span style=color:#66d9ef>string</span>) <span style=color:#66d9ef>string</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// String returns string representation</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>ls</span> <span style=color:#a6e22e>Labels</span>) <span style=color:#a6e22e>String</span>() <span style=color:#66d9ef>string</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// AsSelector converts labels to a selector</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>ls</span> <span style=color:#a6e22e>Labels</span>) <span style=color:#a6e22e>AsSelector</span>() <span style=color:#a6e22e>Selector</span>
+</span></span></code></pre></div><h3 id=requirement-type>Requirement Type</h3><p>Represents a single selection requirement:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>Requirement</span> <span style=color:#66d9ef>struct</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>key</span>      <span style=color:#66d9ef>string</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>operator</span> <span style=color:#a6e22e>selection</span>.<span style=color:#a6e22e>Operator</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>values</span>   <span style=color:#a6e22e>sets</span>.<span style=color:#a6e22e>String</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><p><strong>Constructor:</strong></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>NewRequirement</span>(
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>key</span> <span style=color:#66d9ef>string</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>op</span> <span style=color:#a6e22e>selection</span>.<span style=color:#a6e22e>Operator</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>vals</span> []<span style=color:#66d9ef>string</span>,
+</span></span><span style=display:flex><span>) (<span style=color:#f92672>*</span><span style=color:#a6e22e>Requirement</span>, <span style=color:#66d9ef>error</span>)
+</span></span></code></pre></div><p><strong>Methods:</strong></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Key returns the requirement&#39;s key</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>r</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Requirement</span>) <span style=color:#a6e22e>Key</span>() <span style=color:#66d9ef>string</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Operator returns the requirement&#39;s operator</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>r</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Requirement</span>) <span style=color:#a6e22e>Operator</span>() <span style=color:#a6e22e>selection</span>.<span style=color:#a6e22e>Operator</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Values returns the requirement&#39;s values</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>r</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Requirement</span>) <span style=color:#a6e22e>Values</span>() <span style=color:#a6e22e>sets</span>.<span style=color:#a6e22e>String</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Matches returns true if the requirement matches the labels</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>r</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Requirement</span>) <span style=color:#a6e22e>Matches</span>(<span style=color:#a6e22e>ls</span> <span style=color:#a6e22e>Labels</span>) <span style=color:#66d9ef>bool</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// String returns string representation</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>r</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Requirement</span>) <span style=color:#a6e22e>String</span>() <span style=color:#66d9ef>string</span>
+</span></span></code></pre></div><h3 id=selection-operators>Selection Operators</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>const</span> (
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>DoesNotExist</span> <span style=color:#a6e22e>selection</span>.<span style=color:#a6e22e>Operator</span> = <span style=color:#e6db74>&#34;!&#34;</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Equals</span>       <span style=color:#a6e22e>selection</span>.<span style=color:#a6e22e>Operator</span> = <span style=color:#e6db74>&#34;=&#34;</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>DoubleEquals</span> <span style=color:#a6e22e>selection</span>.<span style=color:#a6e22e>Operator</span> = <span style=color:#e6db74>&#34;==&#34;</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>In</span>           <span style=color:#a6e22e>selection</span>.<span style=color:#a6e22e>Operator</span> = <span style=color:#e6db74>&#34;in&#34;</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>NotEquals</span>    <span style=color:#a6e22e>selection</span>.<span style=color:#a6e22e>Operator</span> = <span style=color:#e6db74>&#34;!=&#34;</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>NotIn</span>        <span style=color:#a6e22e>selection</span>.<span style=color:#a6e22e>Operator</span> = <span style=color:#e6db74>&#34;notin&#34;</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Exists</span>       <span style=color:#a6e22e>selection</span>.<span style=color:#a6e22e>Operator</span> = <span style=color:#e6db74>&#34;exists&#34;</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>GreaterThan</span>  <span style=color:#a6e22e>selection</span>.<span style=color:#a6e22e>Operator</span> = <span style=color:#e6db74>&#34;gt&#34;</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>LessThan</span>     <span style=color:#a6e22e>selection</span>.<span style=color:#a6e22e>Operator</span> = <span style=color:#e6db74>&#34;lt&#34;</span>
+</span></span><span style=display:flex><span>)
+</span></span></code></pre></div><h3 id=operator-semantics>Operator Semantics</h3><p><img src=/diagrams/diagram-344f3b73.svg alt=Diagram></p><p><strong>Operator Details:</strong></p><ol><li><p><strong>Exists</strong>: Label key must be present (any value)</p><pre tabindex=0><code>environment
+</code></pre></li><li><p><strong>DoesNotExist</strong>: Label key must not be present</p><pre tabindex=0><code>!environment
+</code></pre></li><li><p><strong>Equals/DoubleEquals</strong>: Label value must equal specified value</p><pre tabindex=0><code>environment=production
+environment==production
+</code></pre></li><li><p><strong>NotEquals</strong>: Label value must not equal specified value</p><pre tabindex=0><code>environment!=production
+</code></pre></li><li><p><strong>In</strong>: Label value must be in the set</p><pre tabindex=0><code>environment in (production, staging)
+</code></pre></li><li><p><strong>NotIn</strong>: Label value must not be in the set</p><pre tabindex=0><code>environment notin (development, test)
+</code></pre></li><li><p><strong>GreaterThan</strong>: Numeric comparison (value > threshold)</p><pre tabindex=0><code>priority gt 5
+</code></pre></li><li><p><strong>LessThan</strong>: Numeric comparison (value &lt; threshold)</p><pre tabindex=0><code>priority lt 10
+</code></pre></li></ol><h3 id=creating-selectors>Creating Selectors</h3><p><strong>From Labels:</strong></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Match exact labels</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>selector</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>SelectorFromSet</span>(<span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>Set</span>{
+</span></span><span style=display:flex><span>    <span style=color:#e6db74>&#34;app&#34;</span>: <span style=color:#e6db74>&#34;nginx&#34;</span>,
+</span></span><span style=display:flex><span>    <span style=color:#e6db74>&#34;env&#34;</span>: <span style=color:#e6db74>&#34;production&#34;</span>,
+</span></span><span style=display:flex><span>})
+</span></span></code></pre></div><p><strong>From Requirements:</strong></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Create requirements</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>req1</span>, <span style=color:#a6e22e>_</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>NewRequirement</span>(<span style=color:#e6db74>&#34;app&#34;</span>, <span style=color:#a6e22e>selection</span>.<span style=color:#a6e22e>Equals</span>, []<span style=color:#66d9ef>string</span>{<span style=color:#e6db74>&#34;nginx&#34;</span>})
+</span></span><span style=display:flex><span><span style=color:#a6e22e>req2</span>, <span style=color:#a6e22e>_</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>NewRequirement</span>(<span style=color:#e6db74>&#34;env&#34;</span>, <span style=color:#a6e22e>selection</span>.<span style=color:#a6e22e>In</span>, []<span style=color:#66d9ef>string</span>{<span style=color:#e6db74>&#34;prod&#34;</span>, <span style=color:#e6db74>&#34;staging&#34;</span>})
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Create selector</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>selector</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>NewSelector</span>().<span style=color:#a6e22e>Add</span>(<span style=color:#f92672>*</span><span style=color:#a6e22e>req1</span>, <span style=color:#f92672>*</span><span style=color:#a6e22e>req2</span>)
+</span></span></code></pre></div><p><strong>From String:</strong></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Parse selector string</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>selector</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>Parse</span>(<span style=color:#e6db74>&#34;app=nginx,env in (prod,staging)&#34;</span>)
+</span></span></code></pre></div><p><strong>Everything Selector:</strong></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Matches all labels</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>selector</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>Everything</span>()
+</span></span></code></pre></div><p><strong>Nothing Selector:</strong></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Matches no labels</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>selector</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>Nothing</span>()
+</span></span></code></pre></div><h3 id=parsing-selector-strings>Parsing Selector Strings</h3><p><strong>Syntax:</strong></p><pre tabindex=0><code>&lt;selector&gt; ::= &lt;requirement&gt; | &lt;requirement&gt; &#34;,&#34; &lt;selector&gt;
+&lt;requirement&gt; ::= &lt;key&gt; &lt;operator&gt; &lt;values&gt; | &lt;key&gt;
+&lt;operator&gt; ::= &#34;=&#34; | &#34;==&#34; | &#34;!=&#34; | &#34;in&#34; | &#34;notin&#34; | &#34;gt&#34; | &#34;lt&#34; | &#34;exists&#34; | &#34;!&#34;
+&lt;values&gt; ::= &lt;value&gt; | &#34;(&#34; &lt;value&gt; [&#34;,&#34; &lt;value&gt;]* &#34;)&#34;
+</code></pre><p><strong>Examples:</strong></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Simple equality</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>selector</span>, <span style=color:#a6e22e>_</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>Parse</span>(<span style=color:#e6db74>&#34;app=nginx&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Multiple requirements (AND)</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>selector</span>, <span style=color:#a6e22e>_</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>Parse</span>(<span style=color:#e6db74>&#34;app=nginx,env=production&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// In operator</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>selector</span>, <span style=color:#a6e22e>_</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>Parse</span>(<span style=color:#e6db74>&#34;env in (prod,staging)&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Not in operator</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>selector</span>, <span style=color:#a6e22e>_</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>Parse</span>(<span style=color:#e6db74>&#34;env notin (dev,test)&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Exists</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>selector</span>, <span style=color:#a6e22e>_</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>Parse</span>(<span style=color:#e6db74>&#34;app&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Does not exist</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>selector</span>, <span style=color:#a6e22e>_</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>Parse</span>(<span style=color:#e6db74>&#34;!debug&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Numeric comparison</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>selector</span>, <span style=color:#a6e22e>_</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>Parse</span>(<span style=color:#e6db74>&#34;priority gt 5&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Complex selector</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>selector</span>, <span style=color:#a6e22e>_</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>Parse</span>(<span style=color:#e6db74>&#34;app=nginx,env in (prod,staging),!debug,priority gt 5&#34;</span>)
+</span></span></code></pre></div><h3 id=matching-labels>Matching Labels</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Create labels</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>podLabels</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>Set</span>{
+</span></span><span style=display:flex><span>    <span style=color:#e6db74>&#34;app&#34;</span>:     <span style=color:#e6db74>&#34;nginx&#34;</span>,
+</span></span><span style=display:flex><span>    <span style=color:#e6db74>&#34;env&#34;</span>:     <span style=color:#e6db74>&#34;production&#34;</span>,
+</span></span><span style=display:flex><span>    <span style=color:#e6db74>&#34;version&#34;</span>: <span style=color:#e6db74>&#34;1.0&#34;</span>,
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Create selector</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>selector</span>, <span style=color:#a6e22e>_</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>Parse</span>(<span style=color:#e6db74>&#34;app=nginx,env in (production,staging)&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Match</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> <span style=color:#a6e22e>selector</span>.<span style=color:#a6e22e>Matches</span>(<span style=color:#a6e22e>podLabels</span>) {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#e6db74>&#34;Pod matches selector&#34;</span>)
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=label-validation>Label Validation</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Validate label key</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>IsValidLabelKey</span>(<span style=color:#a6e22e>key</span> <span style=color:#66d9ef>string</span>) <span style=color:#66d9ef>bool</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Validate label value</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>IsValidLabelValue</span>(<span style=color:#a6e22e>value</span> <span style=color:#66d9ef>string</span>) <span style=color:#66d9ef>bool</span>
+</span></span></code></pre></div><p><strong>Validation Rules:</strong></p><ul><li><p><strong>Keys</strong>:</p><ul><li>Optional prefix (DNS subdomain) + &ldquo;/&rdquo; + name</li><li>Name: alphanumeric, &ldquo;-&rdquo;, &ldquo;_&rdquo;, &ldquo;.&rdquo;, max 63 chars</li><li>Prefix: DNS subdomain, max 253 chars</li></ul></li><li><p><strong>Values</strong>:</p><ul><li>Alphanumeric, &ldquo;-&rdquo;, &ldquo;_&rdquo;, &ldquo;.&rdquo;, max 63 chars</li><li>Empty string is valid</li></ul></li></ul><h2 id=fields-package>Fields Package</h2><h3 id=selector-interface-1>Selector Interface</h3><p>Similar to labels, but for field selection:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>Selector</span> <span style=color:#66d9ef>interface</span> {
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// Matches returns true if this selector matches the given Fields</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Matches</span>(<span style=color:#a6e22e>Fields</span>) <span style=color:#66d9ef>bool</span>
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// Empty returns true if this selector does not restrict selection</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Empty</span>() <span style=color:#66d9ef>bool</span>
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// RequiresExactMatch returns true if this selector requires exact match</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>RequiresExactMatch</span>(<span style=color:#a6e22e>field</span> <span style=color:#66d9ef>string</span>) (<span style=color:#a6e22e>value</span> <span style=color:#66d9ef>string</span>, <span style=color:#a6e22e>found</span> <span style=color:#66d9ef>bool</span>)
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// Transform applies a transformation to the selector</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Transform</span>(<span style=color:#a6e22e>fn</span> <span style=color:#a6e22e>TransformFunc</span>) (<span style=color:#a6e22e>Selector</span>, <span style=color:#66d9ef>error</span>)
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// Requirements returns requirements</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Requirements</span>() <span style=color:#a6e22e>Requirements</span>
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// String returns string representation</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>String</span>() <span style=color:#66d9ef>string</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=fields-type>Fields Type</h3><p>Represents a set of fields:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>Fields</span> <span style=color:#66d9ef>map</span>[<span style=color:#66d9ef>string</span>]<span style=color:#66d9ef>string</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Alias for convenience</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>Set</span> = <span style=color:#a6e22e>Fields</span>
+</span></span></code></pre></div><h3 id=creating-field-selectors>Creating Field Selectors</h3><p><strong>From Fields:</strong></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#a6e22e>selector</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>fields</span>.<span style=color:#a6e22e>SelectorFromSet</span>(<span style=color:#a6e22e>fields</span>.<span style=color:#a6e22e>Set</span>{
+</span></span><span style=display:flex><span>    <span style=color:#e6db74>&#34;metadata.name&#34;</span>:      <span style=color:#e6db74>&#34;my-pod&#34;</span>,
+</span></span><span style=display:flex><span>    <span style=color:#e6db74>&#34;metadata.namespace&#34;</span>: <span style=color:#e6db74>&#34;default&#34;</span>,
+</span></span><span style=display:flex><span>})
+</span></span></code></pre></div><p><strong>From String:</strong></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#a6e22e>selector</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>fields</span>.<span style=color:#a6e22e>ParseSelector</span>(<span style=color:#e6db74>&#34;metadata.name=my-pod,status.phase=Running&#34;</span>)
+</span></span></code></pre></div><p><strong>Everything Selector:</strong></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#a6e22e>selector</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>fields</span>.<span style=color:#a6e22e>Everything</span>()
+</span></span></code></pre></div><p><strong>Nothing Selector:</strong></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#a6e22e>selector</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>fields</span>.<span style=color:#a6e22e>Nothing</span>()
+</span></span></code></pre></div><p><strong>One Term Selector:</strong></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Single field match</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>selector</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>fields</span>.<span style=color:#a6e22e>OneTermEqualSelector</span>(<span style=color:#e6db74>&#34;metadata.name&#34;</span>, <span style=color:#e6db74>&#34;my-pod&#34;</span>)
+</span></span></code></pre></div><h3 id=field-selector-syntax>Field Selector Syntax</h3><p><strong>Supported Operators:</strong></p><ul><li><code>=</code> or <code>==</code>: Equality</li><li><code>!=</code>: Inequality</li></ul><p><strong>Examples:</strong></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Single field</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>selector</span>, <span style=color:#a6e22e>_</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>fields</span>.<span style=color:#a6e22e>ParseSelector</span>(<span style=color:#e6db74>&#34;metadata.name=my-pod&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Multiple fields (AND)</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>selector</span>, <span style=color:#a6e22e>_</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>fields</span>.<span style=color:#a6e22e>ParseSelector</span>(<span style=color:#e6db74>&#34;metadata.name=my-pod,status.phase=Running&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Inequality</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>selector</span>, <span style=color:#a6e22e>_</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>fields</span>.<span style=color:#a6e22e>ParseSelector</span>(<span style=color:#e6db74>&#34;status.phase!=Failed&#34;</span>)
+</span></span></code></pre></div><p><strong>Note:</strong> Field selectors have more limited operators than label selectors. Only equality and inequality are supported.</p><h3 id=common-field-selectors>Common Field Selectors</h3><p><strong>Pods:</strong></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// By name</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>fields</span>.<span style=color:#a6e22e>OneTermEqualSelector</span>(<span style=color:#e6db74>&#34;metadata.name&#34;</span>, <span style=color:#e6db74>&#34;my-pod&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// By namespace</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>fields</span>.<span style=color:#a6e22e>OneTermEqualSelector</span>(<span style=color:#e6db74>&#34;metadata.namespace&#34;</span>, <span style=color:#e6db74>&#34;default&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// By phase</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>fields</span>.<span style=color:#a6e22e>OneTermEqualSelector</span>(<span style=color:#e6db74>&#34;status.phase&#34;</span>, <span style=color:#e6db74>&#34;Running&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// By node</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>fields</span>.<span style=color:#a6e22e>OneTermEqualSelector</span>(<span style=color:#e6db74>&#34;spec.nodeName&#34;</span>, <span style=color:#e6db74>&#34;node-1&#34;</span>)
+</span></span></code></pre></div><p><strong>Events:</strong></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// By involved object</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>fields</span>.<span style=color:#a6e22e>OneTermEqualSelector</span>(<span style=color:#e6db74>&#34;involvedObject.name&#34;</span>, <span style=color:#e6db74>&#34;my-pod&#34;</span>)
+</span></span><span style=display:flex><span><span style=color:#a6e22e>fields</span>.<span style=color:#a6e22e>OneTermEqualSelector</span>(<span style=color:#e6db74>&#34;involvedObject.namespace&#34;</span>, <span style=color:#e6db74>&#34;default&#34;</span>)
+</span></span><span style=display:flex><span><span style=color:#a6e22e>fields</span>.<span style=color:#a6e22e>OneTermEqualSelector</span>(<span style=color:#e6db74>&#34;involvedObject.kind&#34;</span>, <span style=color:#e6db74>&#34;Pod&#34;</span>)
+</span></span></code></pre></div><h3 id=field-transformation>Field Transformation</h3><p>Transform field names (e.g., for version conversion):</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>TransformFunc</span> <span style=color:#66d9ef>func</span>(<span style=color:#a6e22e>field</span>, <span style=color:#a6e22e>value</span> <span style=color:#66d9ef>string</span>) (<span style=color:#a6e22e>newField</span>, <span style=color:#a6e22e>newValue</span> <span style=color:#66d9ef>string</span>, <span style=color:#a6e22e>err</span> <span style=color:#66d9ef>error</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Apply transformation</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>transformed</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>selector</span>.<span style=color:#a6e22e>Transform</span>(<span style=color:#66d9ef>func</span>(<span style=color:#a6e22e>field</span>, <span style=color:#a6e22e>value</span> <span style=color:#66d9ef>string</span>) (<span style=color:#66d9ef>string</span>, <span style=color:#66d9ef>string</span>, <span style=color:#66d9ef>error</span>) {
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// Convert external field name to internal</span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>field</span> <span style=color:#f92672>==</span> <span style=color:#e6db74>&#34;metadata.name&#34;</span> {
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>return</span> <span style=color:#e6db74>&#34;name&#34;</span>, <span style=color:#a6e22e>value</span>, <span style=color:#66d9ef>nil</span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>field</span>, <span style=color:#a6e22e>value</span>, <span style=color:#66d9ef>nil</span>
+</span></span><span style=display:flex><span>})
+</span></span></code></pre></div><h2 id=comparison-labels-vs-fields>Comparison: Labels vs Fields</h2><table><thead><tr><th>Aspect</th><th>Labels</th><th>Fields</th></tr></thead><tbody><tr><td><strong>Purpose</strong></td><td>User-defined metadata</td><td>Object field values</td></tr><tr><td><strong>Operators</strong></td><td>=, !=, in, notin, exists, !, gt, lt</td><td>=, !=, ==</td></tr><tr><td><strong>Flexibility</strong></td><td>Arbitrary key-value pairs</td><td>Predefined fields only</td></tr><tr><td><strong>Use Case</strong></td><td>Organizing and selecting resources</td><td>Filtering by object state</td></tr><tr><td><strong>Indexing</strong></td><td>Can be indexed</td><td>Limited indexing</td></tr><tr><td><strong>Examples</strong></td><td>app=nginx, env in (prod,staging)</td><td>status.phase=Running</td></tr></tbody></table><h2 id=usage-patterns>Usage Patterns</h2><h3 id=1-filtering-pod-lists>1. Filtering Pod Lists</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Filter by labels</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>labelSelector</span>, <span style=color:#a6e22e>_</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>Parse</span>(<span style=color:#e6db74>&#34;app=nginx,env=production&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Filter by fields</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>fieldSelector</span>, <span style=color:#a6e22e>_</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>fields</span>.<span style=color:#a6e22e>ParseSelector</span>(<span style=color:#e6db74>&#34;status.phase=Running&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Use in list options</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>listOptions</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>metav1</span>.<span style=color:#a6e22e>ListOptions</span>{
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>LabelSelector</span>: <span style=color:#a6e22e>labelSelector</span>.<span style=color:#a6e22e>String</span>(),
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>FieldSelector</span>: <span style=color:#a6e22e>fieldSelector</span>.<span style=color:#a6e22e>String</span>(),
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>pods</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>clientset</span>.<span style=color:#a6e22e>CoreV1</span>().<span style=color:#a6e22e>Pods</span>(<span style=color:#e6db74>&#34;default&#34;</span>).<span style=color:#a6e22e>List</span>(<span style=color:#a6e22e>ctx</span>, <span style=color:#a6e22e>listOptions</span>)
+</span></span></code></pre></div><h3 id=2-watching-resources>2. Watching Resources</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Watch pods with specific labels</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>watchOptions</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>metav1</span>.<span style=color:#a6e22e>ListOptions</span>{
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>LabelSelector</span>: <span style=color:#e6db74>&#34;app=nginx&#34;</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>FieldSelector</span>: <span style=color:#e6db74>&#34;status.phase=Running&#34;</span>,
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>watcher</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>clientset</span>.<span style=color:#a6e22e>CoreV1</span>().<span style=color:#a6e22e>Pods</span>(<span style=color:#e6db74>&#34;default&#34;</span>).<span style=color:#a6e22e>Watch</span>(<span style=color:#a6e22e>ctx</span>, <span style=color:#a6e22e>watchOptions</span>)
+</span></span><span style=display:flex><span><span style=color:#66d9ef>for</span> <span style=color:#a6e22e>event</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>watcher</span>.<span style=color:#a6e22e>ResultChan</span>() {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>pod</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>event</span>.<span style=color:#a6e22e>Object</span>.(<span style=color:#f92672>*</span><span style=color:#a6e22e>v1</span>.<span style=color:#a6e22e>Pod</span>)
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Printf</span>(<span style=color:#e6db74>&#34;Event: %s, Pod: %s\n&#34;</span>, <span style=color:#a6e22e>event</span>.<span style=color:#a6e22e>Type</span>, <span style=color:#a6e22e>pod</span>.<span style=color:#a6e22e>Name</span>)
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=3-service-selector>3. Service Selector</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Service selects pods by labels</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>service</span> <span style=color:#f92672>:=</span> <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>v1</span>.<span style=color:#a6e22e>Service</span>{
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Spec</span>: <span style=color:#a6e22e>v1</span>.<span style=color:#a6e22e>ServiceSpec</span>{
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>Selector</span>: <span style=color:#66d9ef>map</span>[<span style=color:#66d9ef>string</span>]<span style=color:#66d9ef>string</span>{
+</span></span><span style=display:flex><span>            <span style=color:#e6db74>&#34;app&#34;</span>: <span style=color:#e6db74>&#34;nginx&#34;</span>,
+</span></span><span style=display:flex><span>            <span style=color:#e6db74>&#34;env&#34;</span>: <span style=color:#e6db74>&#34;production&#34;</span>,
+</span></span><span style=display:flex><span>        },
+</span></span><span style=display:flex><span>    },
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Convert to selector for matching</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>selector</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>SelectorFromSet</span>(<span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>Set</span>(<span style=color:#a6e22e>service</span>.<span style=color:#a6e22e>Spec</span>.<span style=color:#a6e22e>Selector</span>))
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Check if pod matches</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> <span style=color:#a6e22e>selector</span>.<span style=color:#a6e22e>Matches</span>(<span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>Set</span>(<span style=color:#a6e22e>pod</span>.<span style=color:#a6e22e>Labels</span>)) {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#e6db74>&#34;Pod is selected by service&#34;</span>)
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=4-replicaset-selector>4. ReplicaSet Selector</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// ReplicaSet uses label selector</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>rs</span> <span style=color:#f92672>:=</span> <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>appsv1</span>.<span style=color:#a6e22e>ReplicaSet</span>{
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Spec</span>: <span style=color:#a6e22e>appsv1</span>.<span style=color:#a6e22e>ReplicaSetSpec</span>{
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>Selector</span>: <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>metav1</span>.<span style=color:#a6e22e>LabelSelector</span>{
+</span></span><span style=display:flex><span>            <span style=color:#a6e22e>MatchLabels</span>: <span style=color:#66d9ef>map</span>[<span style=color:#66d9ef>string</span>]<span style=color:#66d9ef>string</span>{
+</span></span><span style=display:flex><span>                <span style=color:#e6db74>&#34;app&#34;</span>: <span style=color:#e6db74>&#34;nginx&#34;</span>,
+</span></span><span style=display:flex><span>            },
+</span></span><span style=display:flex><span>            <span style=color:#a6e22e>MatchExpressions</span>: []<span style=color:#a6e22e>metav1</span>.<span style=color:#a6e22e>LabelSelectorRequirement</span>{
+</span></span><span style=display:flex><span>                {
+</span></span><span style=display:flex><span>                    <span style=color:#a6e22e>Key</span>:      <span style=color:#e6db74>&#34;env&#34;</span>,
+</span></span><span style=display:flex><span>                    <span style=color:#a6e22e>Operator</span>: <span style=color:#a6e22e>metav1</span>.<span style=color:#a6e22e>LabelSelectorOpIn</span>,
+</span></span><span style=display:flex><span>                    <span style=color:#a6e22e>Values</span>:   []<span style=color:#66d9ef>string</span>{<span style=color:#e6db74>&#34;prod&#34;</span>, <span style=color:#e6db74>&#34;staging&#34;</span>},
+</span></span><span style=display:flex><span>                },
+</span></span><span style=display:flex><span>            },
+</span></span><span style=display:flex><span>        },
+</span></span><span style=display:flex><span>    },
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Convert to selector</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>selector</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>metav1</span>.<span style=color:#a6e22e>LabelSelectorAsSelector</span>(<span style=color:#a6e22e>rs</span>.<span style=color:#a6e22e>Spec</span>.<span style=color:#a6e22e>Selector</span>)
+</span></span></code></pre></div><h3 id=5-validation>5. Validation</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>ValidateLabels</span>(<span style=color:#a6e22e>labels</span> <span style=color:#66d9ef>map</span>[<span style=color:#66d9ef>string</span>]<span style=color:#66d9ef>string</span>) <span style=color:#66d9ef>error</span> {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>for</span> <span style=color:#a6e22e>key</span>, <span style=color:#a6e22e>value</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>labels</span> {
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>if</span> !<span style=color:#a6e22e>validation</span>.<span style=color:#a6e22e>IsQualifiedName</span>(<span style=color:#a6e22e>key</span>) {
+</span></span><span style=display:flex><span>            <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Errorf</span>(<span style=color:#e6db74>&#34;invalid label key: %s&#34;</span>, <span style=color:#a6e22e>key</span>)
+</span></span><span style=display:flex><span>        }
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>if</span> !<span style=color:#a6e22e>validation</span>.<span style=color:#a6e22e>IsValidLabelValue</span>(<span style=color:#a6e22e>value</span>) {
+</span></span><span style=display:flex><span>            <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Errorf</span>(<span style=color:#e6db74>&#34;invalid label value: %s&#34;</span>, <span style=color:#a6e22e>value</span>)
+</span></span><span style=display:flex><span>        }
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=advanced-features>Advanced Features</h2><h3 id=conflict-detection>Conflict Detection</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Check if two selectors conflict</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>Conflicts</span>(<span style=color:#a6e22e>s1</span>, <span style=color:#a6e22e>s2</span> <span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>Selector</span>) <span style=color:#66d9ef>bool</span> {
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// Implementation checks if selectors can both match same object</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=selector-intersection>Selector Intersection</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Find common requirements</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>Intersection</span>(<span style=color:#a6e22e>s1</span>, <span style=color:#a6e22e>s2</span> <span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>Selector</span>) <span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>Selector</span> {
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// Returns selector that matches both</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=requirement-validation>Requirement Validation</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Validate requirement</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>req</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>NewRequirement</span>(<span style=color:#e6db74>&#34;app&#34;</span>, <span style=color:#a6e22e>selection</span>.<span style=color:#a6e22e>Equals</span>, []<span style=color:#66d9ef>string</span>{<span style=color:#e6db74>&#34;nginx&#34;</span>})
+</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// Invalid requirement</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=performance-considerations>Performance Considerations</h2><h3 id=1-selector-caching>1. Selector Caching</h3><p>Cache parsed selectors:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>SelectorCache</span> <span style=color:#66d9ef>struct</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>cache</span> <span style=color:#66d9ef>map</span>[<span style=color:#66d9ef>string</span>]<span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>Selector</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>mu</span>    <span style=color:#a6e22e>sync</span>.<span style=color:#a6e22e>RWMutex</span>
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>c</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>SelectorCache</span>) <span style=color:#a6e22e>Get</span>(<span style=color:#a6e22e>s</span> <span style=color:#66d9ef>string</span>) (<span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>Selector</span>, <span style=color:#66d9ef>error</span>) {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>mu</span>.<span style=color:#a6e22e>RLock</span>()
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>selector</span>, <span style=color:#a6e22e>ok</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>cache</span>[<span style=color:#a6e22e>s</span>]; <span style=color:#a6e22e>ok</span> {
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>mu</span>.<span style=color:#a6e22e>RUnlock</span>()
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>selector</span>, <span style=color:#66d9ef>nil</span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>mu</span>.<span style=color:#a6e22e>RUnlock</span>()
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>selector</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>Parse</span>(<span style=color:#a6e22e>s</span>)
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>, <span style=color:#a6e22e>err</span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>mu</span>.<span style=color:#a6e22e>Lock</span>()
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>cache</span>[<span style=color:#a6e22e>s</span>] = <span style=color:#a6e22e>selector</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>mu</span>.<span style=color:#a6e22e>Unlock</span>()
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>selector</span>, <span style=color:#66d9ef>nil</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=2-index-based-filtering>2. Index-based Filtering</h3><p>Use indices for efficient filtering:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Index pods by label</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>PodIndex</span> <span style=color:#66d9ef>struct</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>byLabel</span> <span style=color:#66d9ef>map</span>[<span style=color:#66d9ef>string</span>]<span style=color:#66d9ef>map</span>[<span style=color:#66d9ef>string</span>][]<span style=color:#f92672>*</span><span style=color:#a6e22e>v1</span>.<span style=color:#a6e22e>Pod</span>
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>idx</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>PodIndex</span>) <span style=color:#a6e22e>GetByLabel</span>(<span style=color:#a6e22e>key</span>, <span style=color:#a6e22e>value</span> <span style=color:#66d9ef>string</span>) []<span style=color:#f92672>*</span><span style=color:#a6e22e>v1</span>.<span style=color:#a6e22e>Pod</span> {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>idx</span>.<span style=color:#a6e22e>byLabel</span>[<span style=color:#a6e22e>key</span>][<span style=color:#a6e22e>value</span>]
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=3-early-termination>3. Early Termination</h3><p>Short-circuit evaluation:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Check if selector can possibly match</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>CanMatch</span>(<span style=color:#a6e22e>selector</span> <span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>Selector</span>, <span style=color:#a6e22e>labels</span> <span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>Set</span>) <span style=color:#66d9ef>bool</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>reqs</span>, <span style=color:#a6e22e>selectable</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>selector</span>.<span style=color:#a6e22e>Requirements</span>()
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> !<span style=color:#a6e22e>selectable</span> {
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>false</span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>for</span> <span style=color:#a6e22e>_</span>, <span style=color:#a6e22e>req</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>reqs</span> {
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>req</span>.<span style=color:#a6e22e>Operator</span>() <span style=color:#f92672>==</span> <span style=color:#a6e22e>selection</span>.<span style=color:#a6e22e>Equals</span> {
+</span></span><span style=display:flex><span>            <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>value</span>, <span style=color:#a6e22e>found</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>req</span>.<span style=color:#a6e22e>RequiresExactMatch</span>(<span style=color:#a6e22e>req</span>.<span style=color:#a6e22e>Key</span>()); <span style=color:#a6e22e>found</span> {
+</span></span><span style=display:flex><span>                <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>Get</span>(<span style=color:#a6e22e>req</span>.<span style=color:#a6e22e>Key</span>()) <span style=color:#f92672>!=</span> <span style=color:#a6e22e>value</span> {
+</span></span><span style=display:flex><span>                    <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>false</span>  <span style=color:#75715e>// Early termination</span>
+</span></span><span style=display:flex><span>                }
+</span></span><span style=display:flex><span>            }
+</span></span><span style=display:flex><span>        }
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>true</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=testing-support>Testing Support</h2><h3 id=creating-test-selectors>Creating Test Selectors</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Test selector that matches everything</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>selector</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>Everything</span>()
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Test selector that matches nothing</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>selector</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>Nothing</span>()
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Test selector with specific requirements</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>selector</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>SelectorFromSet</span>(<span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>Set</span>{<span style=color:#e6db74>&#34;app&#34;</span>: <span style=color:#e6db74>&#34;test&#34;</span>})
+</span></span></code></pre></div><h3 id=mock-implementations>Mock Implementations</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>FakeSelector</span> <span style=color:#66d9ef>struct</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>MatchFunc</span> <span style=color:#66d9ef>func</span>(<span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>Labels</span>) <span style=color:#66d9ef>bool</span>
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>f</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>FakeSelector</span>) <span style=color:#a6e22e>Matches</span>(<span style=color:#a6e22e>ls</span> <span style=color:#a6e22e>labels</span>.<span style=color:#a6e22e>Labels</span>) <span style=color:#66d9ef>bool</span> {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>f</span>.<span style=color:#a6e22e>MatchFunc</span>(<span style=color:#a6e22e>ls</span>)
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=summary>Summary</h2><p>The labels and fields packages provide:</p><ol><li><strong>Label Selectors</strong>: Rich filtering by user-defined labels</li><li><strong>Field Selectors</strong>: Filtering by object field values</li><li><strong>Multiple Operators</strong>: Equality, inequality, set membership, existence, comparison</li><li><strong>String Parsing</strong>: Parse selector strings from user input</li><li><strong>Validation</strong>: Ensure labels and selectors are valid</li><li><strong>Performance</strong>: Efficient matching and indexing support</li></ol><p>These packages are fundamental to Kubernetes resource selection, used throughout the API for filtering, watching, and organizing resources.</p></div><nav class=page-nav><a href=/04-watch-package/ class=prev>← Watch Package</a>
+<a href=/02-api-meta-package/ class=next>Api Meta Package →</a></nav></article></main></div><script src=/js/theme.js></script><script src=/js/menu.js></script><script src=/js/resize.js></script></body></html>

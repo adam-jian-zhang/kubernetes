@@ -1,0 +1,19 @@
+sequenceDiagram
+    participant Client
+    participant Codec
+    participant Converter
+    participant Serializer
+    
+    Client->>Codec: Encode(internalObj)
+    Codec->>Converter: ConvertToVersion(internalObj, v1)
+    Converter-->>Codec: v1Obj
+    Codec->>Serializer: Encode(v1Obj)
+    Serializer-->>Codec: Bytes
+    Codec-->>Client: Bytes
+    
+    Client->>Codec: Decode(bytes)
+    Codec->>Serializer: Decode(bytes)
+    Serializer-->>Codec: v1Obj
+    Codec->>Converter: ConvertToVersion(v1Obj, internal)
+    Converter-->>Codec: internalObj
+    Codec-->>Client: internalObj

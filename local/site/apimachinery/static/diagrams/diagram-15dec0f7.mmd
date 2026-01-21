@@ -1,0 +1,10 @@
+graph LR
+    V1[v1 Pod] -->|Convert| Internal[Internal Pod]
+    V2[v2 Pod] -->|Convert| Internal
+    V1Beta1[v1beta1 Pod] -->|Convert| Internal
+    
+    Internal -->|Convert| V1
+    Internal -->|Convert| V2
+    Internal -->|Convert| V1Beta1
+    
+    style Internal fill:#e1f5ff

@@ -1,0 +1,10 @@
+graph LR
+    V1[External v1] -->|Convert| Internal[Internal Version]
+    V2[External v2] -->|Convert| Internal
+    V1Beta1[v1beta1] -->|Convert| Internal
+    
+    Internal -->|Convert| V1
+    Internal -->|Convert| V2
+    Internal -->|Convert| V1Beta1
+    
+    style Internal fill:#e1f5ff

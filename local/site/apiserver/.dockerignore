@@ -1,0 +1,14 @@
+*
+!public/
+.git
+.gitignore
+*.md
+Makefile
+docker-compose.yml
+Dockerfile
+process_docs.py
+hugo.toml
+content/
+static/
+themes/
+temp_mermaid/

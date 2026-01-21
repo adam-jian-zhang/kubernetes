@@ -1,0 +1,9 @@
+graph LR
+    Object[Object Interface] --> Scheme
+    Scheme --> GVK[GroupVersionKind]
+    Scheme --> Type[Go Type]
+    Scheme --> Converter
+    Converter --> InternalVersion[Internal Version]
+    InternalVersion --> ExternalVersion[External Version]
+    
+    style Scheme fill:#e1f5ff

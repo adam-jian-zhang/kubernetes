@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="{{ .Site.LanguageCode }}" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .Title }} | {{ .Site.Title }}</title>
+    <meta name="description" content="{{ .Site.Params.description }}">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <button id="menu-toggle" class="menu-toggle" title="Toggle Menu">
+                    <span class="hamburger"></span>
+                </button>
+                <h1 class="site-title"><a href="/">{{ .Site.Title }}</a></h1>
+                <button id="theme-toggle" class="theme-toggle" title="Toggle Dark Mode">
+                    <span class="theme-icon">🌙</span>
+                </button>
+            </div>
+            <nav class="sidebar-nav">
+                {{ partial "menu.html" . }}
+            </nav>
+        </aside>
+
+        <!-- Resize Handle -->
+        <div id="resize-handle" class="resize-handle"></div>
+
+        <!-- Main Content -->
+        <main id="main-content" class="main-content">
+            {{ block "main" . }}{{ end }}
+        </main>
+    </div>
+
+    <script src="/js/theme.js"></script>
+    <script src="/js/menu.js"></script>
+    <script src="/js/resize.js"></script>
+</body>
+</html>

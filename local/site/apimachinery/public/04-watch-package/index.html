@@ -1,0 +1,372 @@
+<!doctype html><html lang=en><head><meta charset=UTF-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Watch Package - k8s.io/apimachinery Documentation</title><link rel=stylesheet href=/css/style.css></head><body data-theme=light><div class=container><nav id=sidebar class=sidebar><div class=sidebar-header><div class=sidebar-controls><button id=menu-toggle class=menu-toggle title="Toggle Menu">
+<span class=hamburger></span>
+</button>
+<button id=theme-toggle class=theme-toggle title="Toggle Theme">
+<span class=theme-icon>🌙</span></button></div><h2>k8s.io/apimachinery Documentation</h2></div><div class=sidebar-content><ul class=menu><li><a href=/01-runtime-package/>Runtime Package</a></li><li><a href=/02-api-meta-package/>Api Meta Package</a></li><li><a href=/03-labels-and-fields-packages/>Labels And Fields Packages</a></li><li><a href=/04-watch-package/ class=active>Watch Package</a></li><li><a href=/05-serialization/>Serialization</a></li><li><a href=/06-utility-packages/>Utility Packages</a></li><li><a href=/07-conversion-and-resources/>Conversion And Resources</a></li><li><a href=/00-overview/>Overview</a></li></ul></div></nav><div class=resize-handle id=resize-handle></div><main class=main-content><article class=content><h1>Watch Package</h1><div class=page-content><h2 id=overview>Overview</h2><p>The <code>pkg/watch</code> package provides interfaces and implementations for watching changes to Kubernetes resources in real-time. It enables clients to receive notifications when resources are added, modified, or deleted, without polling.</p><h2 id=purpose>Purpose</h2><p>The watch package provides:</p><ol><li><strong>Watch Interface</strong>: Core interface for observing resource changes</li><li><strong>Event Types</strong>: Typed events for different change types</li><li><strong>Stream Watching</strong>: Watch resources from streaming connections</li><li><strong>Broadcasting</strong>: Distribute events to multiple watchers</li><li><strong>Filtering</strong>: Filter events based on criteria</li><li><strong>Multiplexing</strong>: Combine multiple watch sources</li></ol><h2 id=architecture>Architecture</h2><p><img src=/diagrams/diagram-9ccb8748.svg alt=Diagram></p><h2 id=core-interface>Core Interface</h2><h3 id=watch-interface>Watch Interface</h3><p>The fundamental interface for watching resources:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>Interface</span> <span style=color:#66d9ef>interface</span> {
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// Stop tells the producer to stop sending events</span>
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// Consumer should keep watching for events until the channel is closed</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Stop</span>()
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// ResultChan returns a channel which will receive events</span>
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// Producer must close this channel when stopping</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>ResultChan</span>() <span style=color:#f92672>&lt;-</span><span style=color:#66d9ef>chan</span> <span style=color:#a6e22e>Event</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><p><strong>Usage Pattern:</strong></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#a6e22e>watcher</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>client</span>.<span style=color:#a6e22e>Watch</span>(<span style=color:#a6e22e>ctx</span>, <span style=color:#a6e22e>options</span>)
+</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>err</span>
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span><span style=color:#66d9ef>defer</span> <span style=color:#a6e22e>watcher</span>.<span style=color:#a6e22e>Stop</span>()
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>for</span> <span style=color:#a6e22e>event</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>watcher</span>.<span style=color:#a6e22e>ResultChan</span>() {
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// Process event</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=event-type>Event Type</h3><p>Represents a single change event:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>Event</span> <span style=color:#66d9ef>struct</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Type</span>   <span style=color:#a6e22e>EventType</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Object</span> <span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>Object</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=event-types>Event Types</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>EventType</span> <span style=color:#66d9ef>string</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>const</span> (
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Added</span>    <span style=color:#a6e22e>EventType</span> = <span style=color:#e6db74>&#34;ADDED&#34;</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Modified</span> <span style=color:#a6e22e>EventType</span> = <span style=color:#e6db74>&#34;MODIFIED&#34;</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Deleted</span>  <span style=color:#a6e22e>EventType</span> = <span style=color:#e6db74>&#34;DELETED&#34;</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Bookmark</span> <span style=color:#a6e22e>EventType</span> = <span style=color:#e6db74>&#34;BOOKMARK&#34;</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Error</span>    <span style=color:#a6e22e>EventType</span> = <span style=color:#e6db74>&#34;ERROR&#34;</span>
+</span></span><span style=display:flex><span>)
+</span></span></code></pre></div><p><strong>Event Type Semantics:</strong></p><p><img src=/diagrams/diagram-3917700b.svg alt=Diagram></p><ol><li><p><strong>ADDED</strong>: A new resource was created</p><ul><li>Object contains the new resource state</li></ul></li><li><p><strong>MODIFIED</strong>: An existing resource was updated</p><ul><li>Object contains the updated resource state</li></ul></li><li><p><strong>DELETED</strong>: A resource was removed</p><ul><li>Object contains the final state before deletion</li></ul></li><li><p><strong>BOOKMARK</strong>: Synchronization point marker</p><ul><li>Used for resuming watches from a known point</li><li>Object contains only ResourceVersion</li><li>Guarantees no events were missed up to this point</li></ul></li><li><p><strong>ERROR</strong>: An error occurred in the watch</p><ul><li>Object is typically a Status object with error details</li><li>Watch should be restarted</li></ul></li></ol><h2 id=streamwatcher>StreamWatcher</h2><p>Watches a stream and converts it to watch events.</p><h3 id=structure>Structure</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>StreamWatcher</span> <span style=color:#66d9ef>struct</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>source</span>   <span style=color:#a6e22e>Decoder</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>reporter</span> <span style=color:#a6e22e>Reporter</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>result</span>   <span style=color:#66d9ef>chan</span> <span style=color:#a6e22e>Event</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>done</span>     <span style=color:#66d9ef>chan</span> <span style=color:#66d9ef>struct</span>{}
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=decoder-interface>Decoder Interface</h3><p>Decodes events from a stream:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>Decoder</span> <span style=color:#66d9ef>interface</span> {
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// Decode returns the event type and object</span>
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// Blocks until data is available or error occurs</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Decode</span>() (<span style=color:#a6e22e>action</span> <span style=color:#a6e22e>EventType</span>, <span style=color:#a6e22e>object</span> <span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>Object</span>, <span style=color:#a6e22e>err</span> <span style=color:#66d9ef>error</span>)
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// Close the underlying stream</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Close</span>()
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=reporter-interface>Reporter Interface</h3><p>Converts errors to watch events:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>Reporter</span> <span style=color:#66d9ef>interface</span> {
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// AsObject converts an error to a runtime.Object</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>AsObject</span>(<span style=color:#a6e22e>err</span> <span style=color:#66d9ef>error</span>) <span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>Object</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=creating-a-streamwatcher>Creating a StreamWatcher</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Create decoder for the stream</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>decoder</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>json</span>.<span style=color:#a6e22e>NewDecoder</span>(<span style=color:#a6e22e>stream</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Create reporter</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>reporter</span> <span style=color:#f92672>:=</span> <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>errorReporter</span>{}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Create stream watcher</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>watcher</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>watch</span>.<span style=color:#a6e22e>NewStreamWatcher</span>(<span style=color:#a6e22e>decoder</span>, <span style=color:#a6e22e>reporter</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Use the watcher</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>for</span> <span style=color:#a6e22e>event</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>watcher</span>.<span style=color:#a6e22e>ResultChan</span>() {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>switch</span> <span style=color:#a6e22e>event</span>.<span style=color:#a6e22e>Type</span> {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>case</span> <span style=color:#a6e22e>watch</span>.<span style=color:#a6e22e>Added</span>:
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#e6db74>&#34;Added:&#34;</span>, <span style=color:#a6e22e>event</span>.<span style=color:#a6e22e>Object</span>)
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>case</span> <span style=color:#a6e22e>watch</span>.<span style=color:#a6e22e>Modified</span>:
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#e6db74>&#34;Modified:&#34;</span>, <span style=color:#a6e22e>event</span>.<span style=color:#a6e22e>Object</span>)
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>case</span> <span style=color:#a6e22e>watch</span>.<span style=color:#a6e22e>Deleted</span>:
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#e6db74>&#34;Deleted:&#34;</span>, <span style=color:#a6e22e>event</span>.<span style=color:#a6e22e>Object</span>)
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>case</span> <span style=color:#a6e22e>watch</span>.<span style=color:#a6e22e>Error</span>:
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#e6db74>&#34;Error:&#34;</span>, <span style=color:#a6e22e>event</span>.<span style=color:#a6e22e>Object</span>)
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=broadcaster>Broadcaster</h2><p>Distributes events to multiple watchers.</p><h3 id=structure-1>Structure</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>Broadcaster</span> <span style=color:#66d9ef>struct</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>watchers</span>            <span style=color:#66d9ef>map</span>[<span style=color:#66d9ef>int64</span>]<span style=color:#f92672>*</span><span style=color:#a6e22e>broadcasterWatcher</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>incoming</span>            <span style=color:#66d9ef>chan</span> <span style=color:#a6e22e>Event</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>watchQueueLength</span>    <span style=color:#66d9ef>int</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>fullChannelBehavior</span> <span style=color:#a6e22e>FullChannelBehavior</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=full-channel-behavior>Full Channel Behavior</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>FullChannelBehavior</span> <span style=color:#66d9ef>int</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>const</span> (
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>WaitIfChannelFull</span> <span style=color:#a6e22e>FullChannelBehavior</span> = <span style=color:#66d9ef>iota</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>DropIfChannelFull</span>
+</span></span><span style=display:flex><span>)
+</span></span></code></pre></div><ul><li><strong>WaitIfChannelFull</strong>: Block until watcher can receive (default)</li><li><strong>DropIfChannelFull</strong>: Skip slow watchers, continue with others</li></ul><h3 id=creating-a-broadcaster>Creating a Broadcaster</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Create broadcaster with queue length and behavior</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>broadcaster</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>watch</span>.<span style=color:#a6e22e>NewBroadcaster</span>(<span style=color:#ae81ff>100</span>, <span style=color:#a6e22e>watch</span>.<span style=color:#a6e22e>WaitIfChannelFull</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Start watching</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>watcher1</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>broadcaster</span>.<span style=color:#a6e22e>Watch</span>()
+</span></span><span style=display:flex><span><span style=color:#a6e22e>watcher2</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>broadcaster</span>.<span style=color:#a6e22e>Watch</span>()
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Send events to all watchers</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>broadcaster</span>.<span style=color:#a6e22e>Action</span>(<span style=color:#a6e22e>watch</span>.<span style=color:#a6e22e>Added</span>, <span style=color:#a6e22e>pod</span>)
+</span></span><span style=display:flex><span><span style=color:#a6e22e>broadcaster</span>.<span style=color:#a6e22e>Action</span>(<span style=color:#a6e22e>watch</span>.<span style=color:#a6e22e>Modified</span>, <span style=color:#a6e22e>pod</span>)
+</span></span><span style=display:flex><span><span style=color:#a6e22e>broadcaster</span>.<span style=color:#a6e22e>Action</span>(<span style=color:#a6e22e>watch</span>.<span style=color:#a6e22e>Deleted</span>, <span style=color:#a6e22e>pod</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Shutdown</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>broadcaster</span>.<span style=color:#a6e22e>Shutdown</span>()
+</span></span></code></pre></div><h3 id=broadcasting-pattern>Broadcasting Pattern</h3><p><img src=/diagrams/diagram-5d574d85.svg alt=Diagram></p><h3 id=methods>Methods</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Watch creates a new watcher</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>b</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Broadcaster</span>) <span style=color:#a6e22e>Watch</span>() <span style=color:#a6e22e>Interface</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// WatchWithPrefix creates a watcher with a filter function</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>b</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Broadcaster</span>) <span style=color:#a6e22e>WatchWithPrefix</span>(<span style=color:#a6e22e>filter</span> <span style=color:#a6e22e>FilterFunc</span>) <span style=color:#a6e22e>Interface</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Action sends an event to all watchers</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>b</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Broadcaster</span>) <span style=color:#a6e22e>Action</span>(<span style=color:#a6e22e>action</span> <span style=color:#a6e22e>EventType</span>, <span style=color:#a6e22e>obj</span> <span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>Object</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Shutdown stops the broadcaster and closes all watchers</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>b</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Broadcaster</span>) <span style=color:#a6e22e>Shutdown</span>()
+</span></span></code></pre></div><h2 id=mux-multiplexer>Mux (Multiplexer)</h2><p>Combines multiple watch sources into a single watch interface.</p><h3 id=structure-2>Structure</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>Mux</span> <span style=color:#66d9ef>struct</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>lock</span>        <span style=color:#a6e22e>sync</span>.<span style=color:#a6e22e>RWMutex</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>watchers</span>    <span style=color:#66d9ef>map</span>[<span style=color:#66d9ef>int64</span>]<span style=color:#f92672>*</span><span style=color:#a6e22e>muxWatcher</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>broadcaster</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Broadcaster</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=creating-a-mux>Creating a Mux</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Create mux</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>mux</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>watch</span>.<span style=color:#a6e22e>NewMux</span>(<span style=color:#ae81ff>100</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Add watch sources</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>mux</span>.<span style=color:#a6e22e>AddSource</span>(<span style=color:#a6e22e>watcher1</span>)
+</span></span><span style=display:flex><span><span style=color:#a6e22e>mux</span>.<span style=color:#a6e22e>AddSource</span>(<span style=color:#a6e22e>watcher2</span>)
+</span></span><span style=display:flex><span><span style=color:#a6e22e>mux</span>.<span style=color:#a6e22e>AddSource</span>(<span style=color:#a6e22e>watcher3</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Watch combined stream</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>combinedWatcher</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>mux</span>.<span style=color:#a6e22e>Watch</span>()
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>for</span> <span style=color:#a6e22e>event</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>combinedWatcher</span>.<span style=color:#a6e22e>ResultChan</span>() {
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// Receives events from all sources</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=use-cases>Use Cases</h3><ol><li><strong>Multiple API Servers</strong>: Watch resources from multiple clusters</li><li><strong>Aggregation</strong>: Combine watches for different resource types</li><li><strong>Failover</strong>: Switch between primary and backup sources</li></ol><h2 id=filter>Filter</h2><p>Filters watch events based on criteria.</p><h3 id=creating-a-filter>Creating a Filter</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Create base watcher</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>baseWatcher</span>, <span style=color:#a6e22e>_</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>client</span>.<span style=color:#a6e22e>Watch</span>(<span style=color:#a6e22e>ctx</span>, <span style=color:#a6e22e>options</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Create filter function</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>filterFunc</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>func</span>(<span style=color:#a6e22e>event</span> <span style=color:#a6e22e>watch</span>.<span style=color:#a6e22e>Event</span>) (<span style=color:#a6e22e>watch</span>.<span style=color:#a6e22e>Event</span>, <span style=color:#66d9ef>bool</span>) {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>pod</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>event</span>.<span style=color:#a6e22e>Object</span>.(<span style=color:#f92672>*</span><span style=color:#a6e22e>v1</span>.<span style=color:#a6e22e>Pod</span>)
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// Only pass through running pods</span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>pod</span>.<span style=color:#a6e22e>Status</span>.<span style=color:#a6e22e>Phase</span> <span style=color:#f92672>==</span> <span style=color:#a6e22e>v1</span>.<span style=color:#a6e22e>PodRunning</span> {
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>event</span>, <span style=color:#66d9ef>true</span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>watch</span>.<span style=color:#a6e22e>Event</span>{}, <span style=color:#66d9ef>false</span>
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Create filtered watcher</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>filteredWatcher</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>watch</span>.<span style=color:#a6e22e>Filter</span>(<span style=color:#a6e22e>baseWatcher</span>, <span style=color:#a6e22e>filterFunc</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Use filtered watcher</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>for</span> <span style=color:#a6e22e>event</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>filteredWatcher</span>.<span style=color:#a6e22e>ResultChan</span>() {
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// Only receives events for running pods</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=filter-function>Filter Function</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>FilterFunc</span> <span style=color:#66d9ef>func</span>(<span style=color:#a6e22e>in</span> <span style=color:#a6e22e>Event</span>) (<span style=color:#a6e22e>out</span> <span style=color:#a6e22e>Event</span>, <span style=color:#a6e22e>keep</span> <span style=color:#66d9ef>bool</span>)
+</span></span></code></pre></div><p><strong>Parameters:</strong></p><ul><li><code>in</code>: Input event</li><li>Returns:<ul><li><code>out</code>: Potentially modified event</li><li><code>keep</code>: Whether to pass the event through</li></ul></li></ul><h2 id=watch-patterns>Watch Patterns</h2><h3 id=1-basic-watch>1. Basic Watch</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#a6e22e>watcher</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>clientset</span>.<span style=color:#a6e22e>CoreV1</span>().<span style=color:#a6e22e>Pods</span>(<span style=color:#e6db74>&#34;default&#34;</span>).<span style=color:#a6e22e>Watch</span>(<span style=color:#a6e22e>ctx</span>, <span style=color:#a6e22e>metav1</span>.<span style=color:#a6e22e>ListOptions</span>{})
+</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>err</span>
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span><span style=color:#66d9ef>defer</span> <span style=color:#a6e22e>watcher</span>.<span style=color:#a6e22e>Stop</span>()
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>for</span> <span style=color:#a6e22e>event</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>watcher</span>.<span style=color:#a6e22e>ResultChan</span>() {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>pod</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>event</span>.<span style=color:#a6e22e>Object</span>.(<span style=color:#f92672>*</span><span style=color:#a6e22e>v1</span>.<span style=color:#a6e22e>Pod</span>)
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>switch</span> <span style=color:#a6e22e>event</span>.<span style=color:#a6e22e>Type</span> {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>case</span> <span style=color:#a6e22e>watch</span>.<span style=color:#a6e22e>Added</span>:
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Printf</span>(<span style=color:#e6db74>&#34;Pod added: %s\n&#34;</span>, <span style=color:#a6e22e>pod</span>.<span style=color:#a6e22e>Name</span>)
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>case</span> <span style=color:#a6e22e>watch</span>.<span style=color:#a6e22e>Modified</span>:
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Printf</span>(<span style=color:#e6db74>&#34;Pod modified: %s\n&#34;</span>, <span style=color:#a6e22e>pod</span>.<span style=color:#a6e22e>Name</span>)
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>case</span> <span style=color:#a6e22e>watch</span>.<span style=color:#a6e22e>Deleted</span>:
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Printf</span>(<span style=color:#e6db74>&#34;Pod deleted: %s\n&#34;</span>, <span style=color:#a6e22e>pod</span>.<span style=color:#a6e22e>Name</span>)
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>case</span> <span style=color:#a6e22e>watch</span>.<span style=color:#a6e22e>Error</span>:
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>status</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>event</span>.<span style=color:#a6e22e>Object</span>.(<span style=color:#f92672>*</span><span style=color:#a6e22e>metav1</span>.<span style=color:#a6e22e>Status</span>)
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Printf</span>(<span style=color:#e6db74>&#34;Watch error: %s\n&#34;</span>, <span style=color:#a6e22e>status</span>.<span style=color:#a6e22e>Message</span>)
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Errorf</span>(<span style=color:#e6db74>&#34;watch error&#34;</span>)
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=2-watch-with-timeout>2. Watch with Timeout</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#a6e22e>ctx</span>, <span style=color:#a6e22e>cancel</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>WithTimeout</span>(<span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>Background</span>(), <span style=color:#ae81ff>5</span><span style=color:#f92672>*</span><span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Minute</span>)
+</span></span><span style=display:flex><span><span style=color:#66d9ef>defer</span> <span style=color:#a6e22e>cancel</span>()
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>watcher</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>clientset</span>.<span style=color:#a6e22e>CoreV1</span>().<span style=color:#a6e22e>Pods</span>(<span style=color:#e6db74>&#34;default&#34;</span>).<span style=color:#a6e22e>Watch</span>(<span style=color:#a6e22e>ctx</span>, <span style=color:#a6e22e>metav1</span>.<span style=color:#a6e22e>ListOptions</span>{})
+</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>err</span>
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span><span style=color:#66d9ef>defer</span> <span style=color:#a6e22e>watcher</span>.<span style=color:#a6e22e>Stop</span>()
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>for</span> {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>select</span> {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>case</span> <span style=color:#a6e22e>event</span>, <span style=color:#a6e22e>ok</span> <span style=color:#f92672>:=</span> <span style=color:#f92672>&lt;-</span><span style=color:#a6e22e>watcher</span>.<span style=color:#a6e22e>ResultChan</span>():
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>if</span> !<span style=color:#a6e22e>ok</span> {
+</span></span><span style=display:flex><span>            <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>  <span style=color:#75715e>// Channel closed</span>
+</span></span><span style=display:flex><span>        }
+</span></span><span style=display:flex><span>        <span style=color:#75715e>// Process event</span>
+</span></span><span style=display:flex><span>        
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>case</span> <span style=color:#f92672>&lt;-</span><span style=color:#a6e22e>ctx</span>.<span style=color:#a6e22e>Done</span>():
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>ctx</span>.<span style=color:#a6e22e>Err</span>()  <span style=color:#75715e>// Timeout</span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=3-watch-with-restart>3. Watch with Restart</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>WatchWithRestart</span>(<span style=color:#a6e22e>ctx</span> <span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>Context</span>, <span style=color:#a6e22e>client</span> <span style=color:#a6e22e>kubernetes</span>.<span style=color:#a6e22e>Interface</span>) <span style=color:#66d9ef>error</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>resourceVersion</span> <span style=color:#f92672>:=</span> <span style=color:#e6db74>&#34;&#34;</span>
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>for</span> {
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>watcher</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>client</span>.<span style=color:#a6e22e>CoreV1</span>().<span style=color:#a6e22e>Pods</span>(<span style=color:#e6db74>&#34;default&#34;</span>).<span style=color:#a6e22e>Watch</span>(<span style=color:#a6e22e>ctx</span>, <span style=color:#a6e22e>metav1</span>.<span style=color:#a6e22e>ListOptions</span>{
+</span></span><span style=display:flex><span>            <span style=color:#a6e22e>ResourceVersion</span>: <span style=color:#a6e22e>resourceVersion</span>,
+</span></span><span style=display:flex><span>        })
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+</span></span><span style=display:flex><span>            <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>err</span>
+</span></span><span style=display:flex><span>        }
+</span></span><span style=display:flex><span>        
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>for</span> <span style=color:#a6e22e>event</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>watcher</span>.<span style=color:#a6e22e>ResultChan</span>() {
+</span></span><span style=display:flex><span>            <span style=color:#66d9ef>switch</span> <span style=color:#a6e22e>event</span>.<span style=color:#a6e22e>Type</span> {
+</span></span><span style=display:flex><span>            <span style=color:#66d9ef>case</span> <span style=color:#a6e22e>watch</span>.<span style=color:#a6e22e>Error</span>:
+</span></span><span style=display:flex><span>                <span style=color:#a6e22e>watcher</span>.<span style=color:#a6e22e>Stop</span>()
+</span></span><span style=display:flex><span>                <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Sleep</span>(<span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Second</span>)
+</span></span><span style=display:flex><span>                <span style=color:#66d9ef>continue</span>  <span style=color:#75715e>// Restart watch</span>
+</span></span><span style=display:flex><span>                
+</span></span><span style=display:flex><span>            <span style=color:#66d9ef>case</span> <span style=color:#a6e22e>watch</span>.<span style=color:#a6e22e>Bookmark</span>:
+</span></span><span style=display:flex><span>                <span style=color:#75715e>// Update resource version for restart</span>
+</span></span><span style=display:flex><span>                <span style=color:#a6e22e>pod</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>event</span>.<span style=color:#a6e22e>Object</span>.(<span style=color:#f92672>*</span><span style=color:#a6e22e>v1</span>.<span style=color:#a6e22e>Pod</span>)
+</span></span><span style=display:flex><span>                <span style=color:#a6e22e>resourceVersion</span> = <span style=color:#a6e22e>pod</span>.<span style=color:#a6e22e>ResourceVersion</span>
+</span></span><span style=display:flex><span>                
+</span></span><span style=display:flex><span>            <span style=color:#66d9ef>default</span>:
+</span></span><span style=display:flex><span>                <span style=color:#75715e>// Process event</span>
+</span></span><span style=display:flex><span>                <span style=color:#a6e22e>pod</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>event</span>.<span style=color:#a6e22e>Object</span>.(<span style=color:#f92672>*</span><span style=color:#a6e22e>v1</span>.<span style=color:#a6e22e>Pod</span>)
+</span></span><span style=display:flex><span>                <span style=color:#a6e22e>resourceVersion</span> = <span style=color:#a6e22e>pod</span>.<span style=color:#a6e22e>ResourceVersion</span>
+</span></span><span style=display:flex><span>            }
+</span></span><span style=display:flex><span>        }
+</span></span><span style=display:flex><span>        
+</span></span><span style=display:flex><span>        <span style=color:#75715e>// Restart watch</span>
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Sleep</span>(<span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Second</span>)
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=4-filtered-watch>4. Filtered Watch</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#a6e22e>watcher</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>clientset</span>.<span style=color:#a6e22e>CoreV1</span>().<span style=color:#a6e22e>Pods</span>(<span style=color:#e6db74>&#34;default&#34;</span>).<span style=color:#a6e22e>Watch</span>(<span style=color:#a6e22e>ctx</span>, <span style=color:#a6e22e>metav1</span>.<span style=color:#a6e22e>ListOptions</span>{
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>LabelSelector</span>: <span style=color:#e6db74>&#34;app=nginx&#34;</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>FieldSelector</span>: <span style=color:#e6db74>&#34;status.phase=Running&#34;</span>,
+</span></span><span style=display:flex><span>})
+</span></span></code></pre></div><h3 id=5-watch-all-namespaces>5. Watch All Namespaces</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#a6e22e>watcher</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>clientset</span>.<span style=color:#a6e22e>CoreV1</span>().<span style=color:#a6e22e>Pods</span>(<span style=color:#a6e22e>metav1</span>.<span style=color:#a6e22e>NamespaceAll</span>).<span style=color:#a6e22e>Watch</span>(<span style=color:#a6e22e>ctx</span>, <span style=color:#a6e22e>metav1</span>.<span style=color:#a6e22e>ListOptions</span>{})
+</span></span></code></pre></div><h2 id=resource-version-and-bookmarks>Resource Version and Bookmarks</h2><h3 id=resource-version>Resource Version</h3><p>Every Kubernetes object has a ResourceVersion:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>ObjectMeta</span> <span style=color:#66d9ef>struct</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>ResourceVersion</span> <span style=color:#66d9ef>string</span>
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// ...</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><p><strong>Purpose:</strong></p><ul><li>Identifies a specific version of an object</li><li>Used to resume watches from a known point</li><li>Prevents missing events during reconnection</li></ul><h3 id=using-resource-version>Using Resource Version</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// List to get current resource version</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>list</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>clientset</span>.<span style=color:#a6e22e>CoreV1</span>().<span style=color:#a6e22e>Pods</span>(<span style=color:#e6db74>&#34;default&#34;</span>).<span style=color:#a6e22e>List</span>(<span style=color:#a6e22e>ctx</span>, <span style=color:#a6e22e>metav1</span>.<span style=color:#a6e22e>ListOptions</span>{})
+</span></span><span style=display:flex><span><span style=color:#a6e22e>resourceVersion</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>list</span>.<span style=color:#a6e22e>ResourceVersion</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Watch from that point forward</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>watcher</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>clientset</span>.<span style=color:#a6e22e>CoreV1</span>().<span style=color:#a6e22e>Pods</span>(<span style=color:#e6db74>&#34;default&#34;</span>).<span style=color:#a6e22e>Watch</span>(<span style=color:#a6e22e>ctx</span>, <span style=color:#a6e22e>metav1</span>.<span style=color:#a6e22e>ListOptions</span>{
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>ResourceVersion</span>: <span style=color:#a6e22e>resourceVersion</span>,
+</span></span><span style=display:flex><span>})
+</span></span></code></pre></div><h3 id=bookmark-events>Bookmark Events</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>for</span> <span style=color:#a6e22e>event</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>watcher</span>.<span style=color:#a6e22e>ResultChan</span>() {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>switch</span> <span style=color:#a6e22e>event</span>.<span style=color:#a6e22e>Type</span> {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>case</span> <span style=color:#a6e22e>watch</span>.<span style=color:#a6e22e>Bookmark</span>:
+</span></span><span style=display:flex><span>        <span style=color:#75715e>// Update resource version for restart</span>
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>accessor</span>, <span style=color:#a6e22e>_</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>meta</span>.<span style=color:#a6e22e>Accessor</span>(<span style=color:#a6e22e>event</span>.<span style=color:#a6e22e>Object</span>)
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>resourceVersion</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>accessor</span>.<span style=color:#a6e22e>GetResourceVersion</span>()
+</span></span><span style=display:flex><span>        
+</span></span><span style=display:flex><span>        <span style=color:#75715e>// Save for later restart</span>
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>saveResourceVersion</span>(<span style=color:#a6e22e>resourceVersion</span>)
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=error-handling>Error Handling</h2><h3 id=watch-errors>Watch Errors</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>for</span> <span style=color:#a6e22e>event</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>watcher</span>.<span style=color:#a6e22e>ResultChan</span>() {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>event</span>.<span style=color:#a6e22e>Type</span> <span style=color:#f92672>==</span> <span style=color:#a6e22e>watch</span>.<span style=color:#a6e22e>Error</span> {
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>status</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>event</span>.<span style=color:#a6e22e>Object</span>.(<span style=color:#f92672>*</span><span style=color:#a6e22e>metav1</span>.<span style=color:#a6e22e>Status</span>)
+</span></span><span style=display:flex><span>        
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>switch</span> <span style=color:#a6e22e>status</span>.<span style=color:#a6e22e>Code</span> {
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>case</span> <span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>StatusGone</span>:
+</span></span><span style=display:flex><span>            <span style=color:#75715e>// Resource version too old, restart from beginning</span>
+</span></span><span style=display:flex><span>            <span style=color:#a6e22e>resourceVersion</span> = <span style=color:#e6db74>&#34;&#34;</span>
+</span></span><span style=display:flex><span>            
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>case</span> <span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>StatusInternalServerError</span>:
+</span></span><span style=display:flex><span>            <span style=color:#75715e>// Server error, retry with backoff</span>
+</span></span><span style=display:flex><span>            <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Sleep</span>(<span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Second</span>)
+</span></span><span style=display:flex><span>            
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>default</span>:
+</span></span><span style=display:flex><span>            <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Errorf</span>(<span style=color:#e6db74>&#34;watch error: %s&#34;</span>, <span style=color:#a6e22e>status</span>.<span style=color:#a6e22e>Message</span>)
+</span></span><span style=display:flex><span>        }
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=connection-errors>Connection Errors</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>WatchWithRetry</span>(<span style=color:#a6e22e>ctx</span> <span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>Context</span>) <span style=color:#66d9ef>error</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>backoff</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Second</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>maxBackoff</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Minute</span>
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>for</span> {
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>watcher</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>startWatch</span>(<span style=color:#a6e22e>ctx</span>)
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+</span></span><span style=display:flex><span>            <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Sleep</span>(<span style=color:#a6e22e>backoff</span>)
+</span></span><span style=display:flex><span>            <span style=color:#a6e22e>backoff</span> = min(<span style=color:#a6e22e>backoff</span><span style=color:#f92672>*</span><span style=color:#ae81ff>2</span>, <span style=color:#a6e22e>maxBackoff</span>)
+</span></span><span style=display:flex><span>            <span style=color:#66d9ef>continue</span>
+</span></span><span style=display:flex><span>        }
+</span></span><span style=display:flex><span>        
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>err</span> = <span style=color:#a6e22e>processWatch</span>(<span style=color:#a6e22e>watcher</span>)
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+</span></span><span style=display:flex><span>            <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Sleep</span>(<span style=color:#a6e22e>backoff</span>)
+</span></span><span style=display:flex><span>            <span style=color:#a6e22e>backoff</span> = min(<span style=color:#a6e22e>backoff</span><span style=color:#f92672>*</span><span style=color:#ae81ff>2</span>, <span style=color:#a6e22e>maxBackoff</span>)
+</span></span><span style=display:flex><span>            <span style=color:#66d9ef>continue</span>
+</span></span><span style=display:flex><span>        }
+</span></span><span style=display:flex><span>        
+</span></span><span style=display:flex><span>        <span style=color:#75715e>// Success, reset backoff</span>
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>backoff</span> = <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Second</span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=performance-considerations>Performance Considerations</h2><h3 id=1-channel-buffering>1. Channel Buffering</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Default channel size</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>var</span> <span style=color:#a6e22e>DefaultChanSize</span> <span style=color:#66d9ef>int32</span> = <span style=color:#ae81ff>100</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Create watcher with custom buffer</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>watcher</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>watch</span>.<span style=color:#a6e22e>NewFake</span>()
+</span></span><span style=display:flex><span><span style=color:#a6e22e>watcher</span>.<span style=color:#a6e22e>ResultChan</span>() <span style=color:#75715e>// Returns buffered channel</span>
+</span></span></code></pre></div><h3 id=2-slow-consumer-protection>2. Slow Consumer Protection</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Use DropIfChannelFull to prevent slow consumers from blocking</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>broadcaster</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>watch</span>.<span style=color:#a6e22e>NewBroadcaster</span>(<span style=color:#ae81ff>100</span>, <span style=color:#a6e22e>watch</span>.<span style=color:#a6e22e>DropIfChannelFull</span>)
+</span></span></code></pre></div><h3 id=3-resource-version-caching>3. Resource Version Caching</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>WatchCache</span> <span style=color:#66d9ef>struct</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>resourceVersion</span> <span style=color:#66d9ef>string</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>mu</span>              <span style=color:#a6e22e>sync</span>.<span style=color:#a6e22e>RWMutex</span>
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>c</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>WatchCache</span>) <span style=color:#a6e22e>Update</span>(<span style=color:#a6e22e>rv</span> <span style=color:#66d9ef>string</span>) {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>mu</span>.<span style=color:#a6e22e>Lock</span>()
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>resourceVersion</span> = <span style=color:#a6e22e>rv</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>mu</span>.<span style=color:#a6e22e>Unlock</span>()
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>c</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>WatchCache</span>) <span style=color:#a6e22e>Get</span>() <span style=color:#66d9ef>string</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>mu</span>.<span style=color:#a6e22e>RLock</span>()
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>defer</span> <span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>mu</span>.<span style=color:#a6e22e>RUnlock</span>()
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>resourceVersion</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=testing-support>Testing Support</h2><h3 id=fake-watcher>Fake Watcher</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>FakeWatcher</span> <span style=color:#66d9ef>struct</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>result</span>  <span style=color:#66d9ef>chan</span> <span style=color:#a6e22e>Event</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>stopped</span> <span style=color:#66d9ef>bool</span>
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>NewFake</span>() <span style=color:#f92672>*</span><span style=color:#a6e22e>FakeWatcher</span> {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>FakeWatcher</span>{
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>result</span>: make(<span style=color:#66d9ef>chan</span> <span style=color:#a6e22e>Event</span>),
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>f</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>FakeWatcher</span>) <span style=color:#a6e22e>Add</span>(<span style=color:#a6e22e>obj</span> <span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>Object</span>) {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>f</span>.<span style=color:#a6e22e>result</span> <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>Event</span>{<span style=color:#a6e22e>Type</span>: <span style=color:#a6e22e>Added</span>, <span style=color:#a6e22e>Object</span>: <span style=color:#a6e22e>obj</span>}
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>f</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>FakeWatcher</span>) <span style=color:#a6e22e>Modify</span>(<span style=color:#a6e22e>obj</span> <span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>Object</span>) {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>f</span>.<span style=color:#a6e22e>result</span> <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>Event</span>{<span style=color:#a6e22e>Type</span>: <span style=color:#a6e22e>Modified</span>, <span style=color:#a6e22e>Object</span>: <span style=color:#a6e22e>obj</span>}
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>f</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>FakeWatcher</span>) <span style=color:#a6e22e>Delete</span>(<span style=color:#a6e22e>obj</span> <span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>Object</span>) {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>f</span>.<span style=color:#a6e22e>result</span> <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>Event</span>{<span style=color:#a6e22e>Type</span>: <span style=color:#a6e22e>Deleted</span>, <span style=color:#a6e22e>Object</span>: <span style=color:#a6e22e>obj</span>}
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>f</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>FakeWatcher</span>) <span style=color:#a6e22e>Error</span>(<span style=color:#a6e22e>obj</span> <span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>Object</span>) {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>f</span>.<span style=color:#a6e22e>result</span> <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>Event</span>{<span style=color:#a6e22e>Type</span>: <span style=color:#a6e22e>Error</span>, <span style=color:#a6e22e>Object</span>: <span style=color:#a6e22e>obj</span>}
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=testing-pattern>Testing Pattern</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>TestWatcher</span>(<span style=color:#a6e22e>t</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>testing</span>.<span style=color:#a6e22e>T</span>) {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>watcher</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>watch</span>.<span style=color:#a6e22e>NewFake</span>()
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>go</span> <span style=color:#66d9ef>func</span>() {
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>watcher</span>.<span style=color:#a6e22e>Add</span>(<span style=color:#a6e22e>pod1</span>)
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>watcher</span>.<span style=color:#a6e22e>Modify</span>(<span style=color:#a6e22e>pod2</span>)
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>watcher</span>.<span style=color:#a6e22e>Delete</span>(<span style=color:#a6e22e>pod3</span>)
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>watcher</span>.<span style=color:#a6e22e>Stop</span>()
+</span></span><span style=display:flex><span>    }()
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>events</span> <span style=color:#f92672>:=</span> []<span style=color:#a6e22e>watch</span>.<span style=color:#a6e22e>Event</span>{}
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>for</span> <span style=color:#a6e22e>event</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>watcher</span>.<span style=color:#a6e22e>ResultChan</span>() {
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>events</span> = append(<span style=color:#a6e22e>events</span>, <span style=color:#a6e22e>event</span>)
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>assert</span>.<span style=color:#a6e22e>Len</span>(<span style=color:#a6e22e>t</span>, <span style=color:#a6e22e>events</span>, <span style=color:#ae81ff>3</span>)
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>assert</span>.<span style=color:#a6e22e>Equal</span>(<span style=color:#a6e22e>t</span>, <span style=color:#a6e22e>watch</span>.<span style=color:#a6e22e>Added</span>, <span style=color:#a6e22e>events</span>[<span style=color:#ae81ff>0</span>].<span style=color:#a6e22e>Type</span>)
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>assert</span>.<span style=color:#a6e22e>Equal</span>(<span style=color:#a6e22e>t</span>, <span style=color:#a6e22e>watch</span>.<span style=color:#a6e22e>Modified</span>, <span style=color:#a6e22e>events</span>[<span style=color:#ae81ff>1</span>].<span style=color:#a6e22e>Type</span>)
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>assert</span>.<span style=color:#a6e22e>Equal</span>(<span style=color:#a6e22e>t</span>, <span style=color:#a6e22e>watch</span>.<span style=color:#a6e22e>Deleted</span>, <span style=color:#a6e22e>events</span>[<span style=color:#ae81ff>2</span>].<span style=color:#a6e22e>Type</span>)
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=integration-with-informers>Integration with Informers</h2><p>The watch package is the foundation for informers (from client-go):</p><p><img src=/diagrams/diagram-74f3d054.svg alt=Diagram></p><h2 id=summary>Summary</h2><p>The watch package provides:</p><ol><li><strong>Watch Interface</strong>: Standard interface for observing changes</li><li><strong>Event Types</strong>: Typed events (Added, Modified, Deleted, Bookmark, Error)</li><li><strong>StreamWatcher</strong>: Watch resources from streaming connections</li><li><strong>Broadcaster</strong>: Distribute events to multiple watchers</li><li><strong>Mux</strong>: Combine multiple watch sources</li><li><strong>Filter</strong>: Filter events based on criteria</li><li><strong>Resource Version</strong>: Resume watches from known points</li><li><strong>Error Handling</strong>: Robust error handling and retry mechanisms</li></ol><p>This package is fundamental to Kubernetes&rsquo; real-time update model, enabling efficient resource monitoring without polling.</p></div><nav class=page-nav><a href=/05-serialization/ class=prev>← Serialization</a>
+<a href=/03-labels-and-fields-packages/ class=next>Labels And Fields Packages →</a></nav></article></main></div><script src=/js/theme.js></script><script src=/js/menu.js></script><script src=/js/resize.js></script></body></html>

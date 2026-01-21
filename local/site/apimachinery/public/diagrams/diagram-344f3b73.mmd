@@ -1,0 +1,17 @@
+graph TB
+    subgraph "Unary Operators"
+        Exists[Exists<br/>Key must be present]
+        DoesNotExist[DoesNotExist<br/>Key must be absent]
+    end
+    
+    subgraph "Binary Operators"
+        Equals[Equals/DoubleEquals<br/>Value must match exactly]
+        NotEquals[NotEquals<br/>Value must not match]
+        In[In<br/>Value in set]
+        NotIn[NotIn<br/>Value not in set]
+        GreaterThan[GreaterThan<br/>Numeric comparison]
+        LessThan[LessThan<br/>Numeric comparison]
+    end
+    
+    style Exists fill:#e1f5ff
+    style In fill:#fff4e1

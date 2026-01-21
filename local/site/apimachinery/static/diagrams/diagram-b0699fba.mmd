@@ -1,0 +1,33 @@
+graph TB
+    subgraph "Conversion System"
+        Converter[Converter]
+        ConversionFunc[Conversion Functions]
+        Scope[Conversion Scope]
+    end
+    
+    subgraph "Conversion Types"
+        Auto[Auto-generated]
+        Manual[Manual Override]
+        Deep[Deep Copy]
+    end
+    
+    subgraph "Strategy"
+        Internal[Internal Version]
+        V1[External v1]
+        V2[External v2]
+        V1Beta1[External v1beta1]
+    end
+    
+    Converter --> ConversionFunc
+    ConversionFunc --> Auto
+    ConversionFunc --> Manual
+    
+    V1 --> Internal
+    V2 --> Internal
+    V1Beta1 --> Internal
+    Internal --> V1
+    Internal --> V2
+    Internal --> V1Beta1
+    
+    style Converter fill:#e1f5ff
+    style Internal fill:#fff4e1

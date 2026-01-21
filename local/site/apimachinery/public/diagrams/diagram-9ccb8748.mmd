@@ -1,0 +1,35 @@
+graph TB
+    subgraph "Core Components"
+        Interface[Watch Interface]
+        Event[Event Type]
+        EventType[Event Types]
+    end
+    
+    subgraph "Implementations"
+        StreamWatcher[StreamWatcher]
+        Broadcaster[Broadcaster]
+        Mux[Mux]
+        Filter[Filter]
+    end
+    
+    subgraph "Event Flow"
+        Source[Event Source]
+        Decoder[Decoder]
+        Channel[Event Channel]
+        Consumer[Consumer]
+    end
+    
+    Interface --> Event
+    Event --> EventType
+    StreamWatcher --> Interface
+    Broadcaster --> Interface
+    Mux --> Interface
+    
+    Source --> Decoder
+    Decoder --> StreamWatcher
+    StreamWatcher --> Channel
+    Channel --> Consumer
+    
+    style Interface fill:#e1f5ff
+    style Event fill:#fff4e1
+    style StreamWatcher fill:#f0ffe1

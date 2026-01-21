@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>http://localhost:9002/</loc>
+  </url><url>
+    <loc>http://localhost:9002/00-overview/</loc>
+  </url><url>
+    <loc>http://localhost:9002/01-core-packages/</loc>
+  </url><url>
+    <loc>http://localhost:9002/02-configuration/</loc>
+  </url><url>
+    <loc>http://localhost:9002/03-controller-infrastructure/</loc>
+  </url><url>
+    <loc>http://localhost:9002/04-advanced-features/</loc>
+  </url><url>
+    <loc>http://localhost:9002/05-utilities/</loc>
+  </url><url>
+    <loc>http://localhost:9002/06-examples/</loc>
+  </url><url>
+    <loc>http://localhost:9002/index-page/</loc>
+  </url><url>
+    <loc>http://localhost:9002/categories/</loc>
+  </url><url>
+    <loc>http://localhost:9002/tags/</loc>
+  </url>
+</urlset>

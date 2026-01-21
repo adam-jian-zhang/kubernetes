@@ -1,0 +1,10 @@
+graph LR
+    Scheme[Scheme Registry]
+    
+    Scheme --> GVKMap[GVK → Go Type]
+    Scheme --> TypeMap[Go Type → GVK]
+    Scheme --> Converter[Converter]
+    Scheme --> Defaulter[Defaulter Functions]
+    Scheme --> Validator[Validation Functions]
+    
+    style Scheme fill:#e1f5ff

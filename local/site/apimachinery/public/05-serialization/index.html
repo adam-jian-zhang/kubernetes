@@ -1,0 +1,376 @@
+<!doctype html><html lang=en><head><meta charset=UTF-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Serialization - k8s.io/apimachinery Documentation</title><link rel=stylesheet href=/css/style.css></head><body data-theme=light><div class=container><nav id=sidebar class=sidebar><div class=sidebar-header><div class=sidebar-controls><button id=menu-toggle class=menu-toggle title="Toggle Menu">
+<span class=hamburger></span>
+</button>
+<button id=theme-toggle class=theme-toggle title="Toggle Theme">
+<span class=theme-icon>🌙</span></button></div><h2>k8s.io/apimachinery Documentation</h2></div><div class=sidebar-content><ul class=menu><li><a href=/01-runtime-package/>Runtime Package</a></li><li><a href=/02-api-meta-package/>Api Meta Package</a></li><li><a href=/03-labels-and-fields-packages/>Labels And Fields Packages</a></li><li><a href=/04-watch-package/>Watch Package</a></li><li><a href=/05-serialization/ class=active>Serialization</a></li><li><a href=/06-utility-packages/>Utility Packages</a></li><li><a href=/07-conversion-and-resources/>Conversion And Resources</a></li><li><a href=/00-overview/>Overview</a></li></ul></div></nav><div class=resize-handle id=resize-handle></div><main class=main-content><article class=content><h1>Serialization</h1><div class=page-content><h2 id=overview>Overview</h2><p>The <code>pkg/runtime/serializer</code> package provides multiple serialization formats for Kubernetes API objects. It supports JSON, YAML, Protocol Buffers, and CBOR, with automatic version conversion and content negotiation.</p><h2 id=purpose>Purpose</h2><p>The serializer package provides:</p><ol><li><strong>Multiple Formats</strong>: JSON, YAML, Protobuf, CBOR</li><li><strong>Content Negotiation</strong>: Select format based on HTTP headers</li><li><strong>Version Conversion</strong>: Automatic conversion during serialization</li><li><strong>Streaming</strong>: Efficient streaming for large collections</li><li><strong>Strict Mode</strong>: Validate unknown fields</li><li><strong>Pretty Printing</strong>: Human-readable output</li></ol><h2 id=architecture>Architecture</h2><p><img src=/diagrams/diagram-e243627b.svg alt=Diagram></p><h2 id=codecfactory>CodecFactory</h2><p>The central factory for creating codecs and serializers.</p><h3 id=structure>Structure</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>CodecFactory</span> <span style=color:#66d9ef>struct</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>scheme</span>           <span style=color:#f92672>*</span><span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>Scheme</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>universal</span>        <span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>Decoder</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>accepts</span>          []<span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>SerializerInfo</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>legacySerializer</span> <span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>Serializer</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=creating-a-codecfactory>Creating a CodecFactory</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#f92672>import</span> (
+</span></span><span style=display:flex><span>    <span style=color:#e6db74>&#34;k8s.io/apimachinery/pkg/runtime&#34;</span>
+</span></span><span style=display:flex><span>    <span style=color:#e6db74>&#34;k8s.io/apimachinery/pkg/runtime/serializer&#34;</span>
+</span></span><span style=display:flex><span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Create scheme</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>scheme</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>NewScheme</span>()
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Register types</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>scheme</span>.<span style=color:#a6e22e>AddKnownTypes</span>(<span style=color:#a6e22e>schema</span>.<span style=color:#a6e22e>GroupVersion</span>{<span style=color:#a6e22e>Group</span>: <span style=color:#e6db74>&#34;apps&#34;</span>, <span style=color:#a6e22e>Version</span>: <span style=color:#e6db74>&#34;v1&#34;</span>},
+</span></span><span style=display:flex><span>    <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>Deployment</span>{},
+</span></span><span style=display:flex><span>    <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>DeploymentList</span>{},
+</span></span><span style=display:flex><span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Create codec factory</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>codecFactory</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>serializer</span>.<span style=color:#a6e22e>NewCodecFactory</span>(<span style=color:#a6e22e>scheme</span>)
+</span></span></code></pre></div><h3 id=codecfactory-options>CodecFactory Options</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>CodecFactoryOptions</span> <span style=color:#66d9ef>struct</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Strict</span>  <span style=color:#66d9ef>bool</span>  <span style=color:#75715e>// Enable strict decoding</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Pretty</span>  <span style=color:#66d9ef>bool</span>  <span style=color:#75715e>// Enable pretty printing</span>
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>StreamingCollectionsEncodingToJSON</span>     <span style=color:#66d9ef>bool</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>StreamingCollectionsEncodingToProtobuf</span> <span style=color:#66d9ef>bool</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><p><strong>Option Mutators:</strong></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Enable pretty printing</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>codecFactory</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>serializer</span>.<span style=color:#a6e22e>NewCodecFactory</span>(<span style=color:#a6e22e>scheme</span>, <span style=color:#a6e22e>serializer</span>.<span style=color:#a6e22e>EnablePretty</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Enable strict mode</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>codecFactory</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>serializer</span>.<span style=color:#a6e22e>NewCodecFactory</span>(<span style=color:#a6e22e>scheme</span>, <span style=color:#a6e22e>serializer</span>.<span style=color:#a6e22e>EnableStrict</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Multiple options</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>codecFactory</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>serializer</span>.<span style=color:#a6e22e>NewCodecFactory</span>(<span style=color:#a6e22e>scheme</span>, 
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>serializer</span>.<span style=color:#a6e22e>EnablePretty</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>serializer</span>.<span style=color:#a6e22e>EnableStrict</span>,
+</span></span><span style=display:flex><span>)
+</span></span></code></pre></div><h3 id=getting-codecs>Getting Codecs</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Universal deserializer (handles any registered format)</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>decoder</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>codecFactory</span>.<span style=color:#a6e22e>UniversalDeserializer</span>()
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Encoder for specific version</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>encoder</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>codecFactory</span>.<span style=color:#a6e22e>EncoderForVersion</span>(
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>jsonSerializer</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>schema</span>.<span style=color:#a6e22e>GroupVersion</span>{<span style=color:#a6e22e>Group</span>: <span style=color:#e6db74>&#34;apps&#34;</span>, <span style=color:#a6e22e>Version</span>: <span style=color:#e6db74>&#34;v1&#34;</span>},
+</span></span><span style=display:flex><span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Decoder for specific version</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>decoder</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>codecFactory</span>.<span style=color:#a6e22e>DecoderToVersion</span>(
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>jsonSerializer</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>schema</span>.<span style=color:#a6e22e>GroupVersion</span>{<span style=color:#a6e22e>Group</span>: <span style=color:#e6db74>&#34;apps&#34;</span>, <span style=color:#a6e22e>Version</span>: <span style=color:#e6db74>&#34;v1&#34;</span>},
+</span></span><span style=display:flex><span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Legacy codec (for backward compatibility)</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>codec</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>codecFactory</span>.<span style=color:#a6e22e>LegacyCodec</span>(
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>schema</span>.<span style=color:#a6e22e>GroupVersion</span>{<span style=color:#a6e22e>Group</span>: <span style=color:#e6db74>&#34;apps&#34;</span>, <span style=color:#a6e22e>Version</span>: <span style=color:#e6db74>&#34;v1&#34;</span>},
+</span></span><span style=display:flex><span>)
+</span></span></code></pre></div><h2 id=json-serializer>JSON Serializer</h2><h3 id=features>Features</h3><ul><li><strong>Standard JSON</strong>: RFC 8259 compliant</li><li><strong>Pretty Printing</strong>: Human-readable formatting</li><li><strong>Strict Mode</strong>: Reject unknown fields</li><li><strong>Streaming</strong>: Efficient for large lists</li></ul><h3 id=creating-json-serializer>Creating JSON Serializer</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#f92672>import</span> <span style=color:#e6db74>&#34;k8s.io/apimachinery/pkg/runtime/serializer/json&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>jsonSerializer</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>json</span>.<span style=color:#a6e22e>NewSerializerWithOptions</span>(
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>json</span>.<span style=color:#a6e22e>DefaultMetaFactory</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>scheme</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>scheme</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>json</span>.<span style=color:#a6e22e>SerializerOptions</span>{
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>Yaml</span>:   <span style=color:#66d9ef>false</span>,
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>Pretty</span>: <span style=color:#66d9ef>false</span>,
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>Strict</span>: <span style=color:#66d9ef>false</span>,
+</span></span><span style=display:flex><span>    },
+</span></span><span style=display:flex><span>)
+</span></span></code></pre></div><h3 id=encoding-json>Encoding JSON</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>var</span> <span style=color:#a6e22e>buf</span> <span style=color:#a6e22e>bytes</span>.<span style=color:#a6e22e>Buffer</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Encode to JSON</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>jsonSerializer</span>.<span style=color:#a6e22e>Encode</span>(<span style=color:#a6e22e>deployment</span>, <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>buf</span>)
+</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>err</span>
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>jsonData</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>buf</span>.<span style=color:#a6e22e>Bytes</span>()
+</span></span></code></pre></div><h3 id=decoding-json>Decoding JSON</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#a6e22e>obj</span>, <span style=color:#a6e22e>gvk</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>jsonSerializer</span>.<span style=color:#a6e22e>Decode</span>(<span style=color:#a6e22e>jsonData</span>, <span style=color:#66d9ef>nil</span>, <span style=color:#66d9ef>nil</span>)
+</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>err</span>
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>deployment</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>obj</span>.(<span style=color:#f92672>*</span><span style=color:#a6e22e>appsv1</span>.<span style=color:#a6e22e>Deployment</span>)
+</span></span></code></pre></div><h3 id=pretty-printing>Pretty Printing</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#a6e22e>prettySerializer</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>json</span>.<span style=color:#a6e22e>NewSerializerWithOptions</span>(
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>json</span>.<span style=color:#a6e22e>DefaultMetaFactory</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>scheme</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>scheme</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>json</span>.<span style=color:#a6e22e>SerializerOptions</span>{
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>Yaml</span>:   <span style=color:#66d9ef>false</span>,
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>Pretty</span>: <span style=color:#66d9ef>true</span>,  <span style=color:#75715e>// Enable pretty printing</span>
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>Strict</span>: <span style=color:#66d9ef>false</span>,
+</span></span><span style=display:flex><span>    },
+</span></span><span style=display:flex><span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Produces formatted JSON</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>prettySerializer</span>.<span style=color:#a6e22e>Encode</span>(<span style=color:#a6e22e>deployment</span>, <span style=color:#a6e22e>os</span>.<span style=color:#a6e22e>Stdout</span>)
+</span></span></code></pre></div><h3 id=strict-mode>Strict Mode</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#a6e22e>strictSerializer</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>json</span>.<span style=color:#a6e22e>NewSerializerWithOptions</span>(
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>json</span>.<span style=color:#a6e22e>DefaultMetaFactory</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>scheme</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>scheme</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>json</span>.<span style=color:#a6e22e>SerializerOptions</span>{
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>Yaml</span>:   <span style=color:#66d9ef>false</span>,
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>Pretty</span>: <span style=color:#66d9ef>false</span>,
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>Strict</span>: <span style=color:#66d9ef>true</span>,  <span style=color:#75715e>// Reject unknown fields</span>
+</span></span><span style=display:flex><span>    },
+</span></span><span style=display:flex><span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Will fail if JSON contains unknown fields</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>obj</span>, <span style=color:#a6e22e>_</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>strictSerializer</span>.<span style=color:#a6e22e>Decode</span>(<span style=color:#a6e22e>jsonData</span>, <span style=color:#66d9ef>nil</span>, <span style=color:#66d9ef>nil</span>)
+</span></span></code></pre></div><h2 id=yaml-serializer>YAML Serializer</h2><h3 id=features-1>Features</h3><ul><li><strong>YAML 1.2</strong>: Standard YAML format</li><li><strong>JSON Compatible</strong>: Built on JSON serializer</li><li><strong>Human Readable</strong>: Easy to read and edit</li></ul><h3 id=creating-yaml-serializer>Creating YAML Serializer</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#a6e22e>yamlSerializer</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>json</span>.<span style=color:#a6e22e>NewSerializerWithOptions</span>(
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>json</span>.<span style=color:#a6e22e>DefaultMetaFactory</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>scheme</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>scheme</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>json</span>.<span style=color:#a6e22e>SerializerOptions</span>{
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>Yaml</span>:   <span style=color:#66d9ef>true</span>,  <span style=color:#75715e>// Enable YAML mode</span>
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>Pretty</span>: <span style=color:#66d9ef>false</span>,
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>Strict</span>: <span style=color:#66d9ef>false</span>,
+</span></span><span style=display:flex><span>    },
+</span></span><span style=display:flex><span>)
+</span></span></code></pre></div><h3 id=encoding-yaml>Encoding YAML</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>var</span> <span style=color:#a6e22e>buf</span> <span style=color:#a6e22e>bytes</span>.<span style=color:#a6e22e>Buffer</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>yamlSerializer</span>.<span style=color:#a6e22e>Encode</span>(<span style=color:#a6e22e>deployment</span>, <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>buf</span>)
+</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>err</span>
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>yamlData</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>buf</span>.<span style=color:#a6e22e>Bytes</span>()
+</span></span></code></pre></div><h3 id=decoding-yaml>Decoding YAML</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#a6e22e>obj</span>, <span style=color:#a6e22e>gvk</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>yamlSerializer</span>.<span style=color:#a6e22e>Decode</span>(<span style=color:#a6e22e>yamlData</span>, <span style=color:#66d9ef>nil</span>, <span style=color:#66d9ef>nil</span>)
+</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>err</span>
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>deployment</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>obj</span>.(<span style=color:#f92672>*</span><span style=color:#a6e22e>appsv1</span>.<span style=color:#a6e22e>Deployment</span>)
+</span></span></code></pre></div><h2 id=protocol-buffers-serializer>Protocol Buffers Serializer</h2><h3 id=features-2>Features</h3><ul><li><strong>Binary Format</strong>: Compact and efficient</li><li><strong>Fast</strong>: Faster than JSON</li><li><strong>Streaming</strong>: Efficient for large collections</li><li><strong>Schema Evolution</strong>: Backward compatible</li></ul><h3 id=creating-protobuf-serializer>Creating Protobuf Serializer</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#f92672>import</span> <span style=color:#e6db74>&#34;k8s.io/apimachinery/pkg/runtime/serializer/protobuf&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>protoSerializer</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>protobuf</span>.<span style=color:#a6e22e>NewSerializer</span>(<span style=color:#a6e22e>scheme</span>, <span style=color:#a6e22e>scheme</span>)
+</span></span></code></pre></div><h3 id=encoding-protobuf>Encoding Protobuf</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>var</span> <span style=color:#a6e22e>buf</span> <span style=color:#a6e22e>bytes</span>.<span style=color:#a6e22e>Buffer</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>protoSerializer</span>.<span style=color:#a6e22e>Encode</span>(<span style=color:#a6e22e>deployment</span>, <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>buf</span>)
+</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>err</span>
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>protoData</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>buf</span>.<span style=color:#a6e22e>Bytes</span>()
+</span></span></code></pre></div><h3 id=decoding-protobuf>Decoding Protobuf</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#a6e22e>obj</span>, <span style=color:#a6e22e>gvk</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>protoSerializer</span>.<span style=color:#a6e22e>Decode</span>(<span style=color:#a6e22e>protoData</span>, <span style=color:#66d9ef>nil</span>, <span style=color:#66d9ef>nil</span>)
+</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>err</span>
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>deployment</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>obj</span>.(<span style=color:#f92672>*</span><span style=color:#a6e22e>appsv1</span>.<span style=color:#a6e22e>Deployment</span>)
+</span></span></code></pre></div><h3 id=protobuf-framing>Protobuf Framing</h3><p>For streaming:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Length-delimited framing</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>framer</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>protobuf</span>.<span style=color:#a6e22e>LengthDelimitedFramer</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Create framed writer</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>framedWriter</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>framer</span>.<span style=color:#a6e22e>NewFrameWriter</span>(<span style=color:#a6e22e>writer</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Encode with framing</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>protoSerializer</span>.<span style=color:#a6e22e>Encode</span>(<span style=color:#a6e22e>obj</span>, <span style=color:#a6e22e>framedWriter</span>)
+</span></span></code></pre></div><h2 id=cbor-serializer>CBOR Serializer</h2><h3 id=features-3>Features</h3><ul><li><strong>Concise Binary</strong>: RFC 8949 compliant</li><li><strong>Efficient</strong>: Smaller than JSON</li><li><strong>Streaming</strong>: CBOR sequences (RFC 8742)</li><li><strong>Modern</strong>: Designed for IoT and constrained environments</li></ul><h3 id=creating-cbor-serializer>Creating CBOR Serializer</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#f92672>import</span> <span style=color:#e6db74>&#34;k8s.io/apimachinery/pkg/runtime/serializer/cbor&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>cborSerializer</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>cbor</span>.<span style=color:#a6e22e>NewSerializer</span>(<span style=color:#a6e22e>scheme</span>, <span style=color:#a6e22e>scheme</span>)
+</span></span></code></pre></div><h3 id=content-types>Content Types</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>const</span> (
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>ContentTypeCBOR</span>         = <span style=color:#e6db74>&#34;application/cbor&#34;</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>ContentTypeCBORSequence</span> = <span style=color:#e6db74>&#34;application/cbor-seq&#34;</span>
+</span></span><span style=display:flex><span>)
+</span></span></code></pre></div><h2 id=versioning-codec>Versioning Codec</h2><p>Wraps serializers to add version conversion.</p><h3 id=structure-1>Structure</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>codec</span> <span style=color:#66d9ef>struct</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>encoder</span>   <span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>Encoder</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>decoder</span>   <span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>Decoder</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>convertor</span> <span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>ObjectConvertor</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>creater</span>   <span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>ObjectCreater</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>typer</span>     <span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>ObjectTyper</span>
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>encodeVersion</span> <span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>GroupVersioner</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>decodeVersion</span> <span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>GroupVersioner</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=creating-versioning-codec>Creating Versioning Codec</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#f92672>import</span> <span style=color:#e6db74>&#34;k8s.io/apimachinery/pkg/runtime/serializer/versioning&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>versioningCodec</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>versioning</span>.<span style=color:#a6e22e>NewCodec</span>(
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>jsonSerializer</span>,                                    <span style=color:#75715e>// Base serializer</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>jsonSerializer</span>,                                    <span style=color:#75715e>// Base deserializer</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>scheme</span>,                                            <span style=color:#75715e>// Convertor</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>scheme</span>,                                            <span style=color:#75715e>// Creater</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>scheme</span>,                                            <span style=color:#75715e>// Typer</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>schema</span>.<span style=color:#a6e22e>GroupVersion</span>{<span style=color:#a6e22e>Group</span>: <span style=color:#e6db74>&#34;apps&#34;</span>, <span style=color:#a6e22e>Version</span>: <span style=color:#e6db74>&#34;v1&#34;</span>}, <span style=color:#75715e>// Encode version</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>schema</span>.<span style=color:#a6e22e>GroupVersion</span>{<span style=color:#a6e22e>Group</span>: <span style=color:#e6db74>&#34;apps&#34;</span>, <span style=color:#a6e22e>Version</span>: <span style=color:#e6db74>&#34;v1&#34;</span>}, <span style=color:#75715e>// Decode version</span>
+</span></span><span style=display:flex><span>    <span style=color:#e6db74>&#34;versioning-codec&#34;</span>,                                <span style=color:#75715e>// Identifier</span>
+</span></span><span style=display:flex><span>)
+</span></span></code></pre></div><h3 id=version-conversion-flow>Version Conversion Flow</h3><p><img src=/diagrams/diagram-bb323d9e.svg alt=Diagram></p><h2 id=streaming-serialization>Streaming Serialization</h2><h3 id=features-4>Features</h3><ul><li><strong>Efficient</strong>: Process large collections without loading all into memory</li><li><strong>Framing</strong>: Separate objects in stream</li><li><strong>Watch</strong>: Used for watch streams</li></ul><h3 id=streaming-interface>Streaming Interface</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>StreamSerializerInfo</span> <span style=color:#66d9ef>struct</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>EncodesAsText</span> <span style=color:#66d9ef>bool</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Serializer</span>    <span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>Serializer</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Framer</span>        <span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>Framer</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=framer-interface>Framer Interface</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>Framer</span> <span style=color:#66d9ef>interface</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>NewFrameReader</span>(<span style=color:#a6e22e>r</span> <span style=color:#a6e22e>io</span>.<span style=color:#a6e22e>ReadCloser</span>) <span style=color:#a6e22e>io</span>.<span style=color:#a6e22e>ReadCloser</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>NewFrameWriter</span>(<span style=color:#a6e22e>w</span> <span style=color:#a6e22e>io</span>.<span style=color:#a6e22e>Writer</span>) <span style=color:#a6e22e>io</span>.<span style=color:#a6e22e>Writer</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=json-framing>JSON Framing</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// JSON uses newline framing</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>var</span> <span style=color:#a6e22e>Framer</span> = <span style=color:#a6e22e>jsonFramer</span>{}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>jsonFramer</span> <span style=color:#66d9ef>struct</span>{}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>jsonFramer</span>) <span style=color:#a6e22e>NewFrameWriter</span>(<span style=color:#a6e22e>w</span> <span style=color:#a6e22e>io</span>.<span style=color:#a6e22e>Writer</span>) <span style=color:#a6e22e>io</span>.<span style=color:#a6e22e>Writer</span> {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>jsonFrameWriter</span>{<span style=color:#a6e22e>w</span>: <span style=color:#a6e22e>w</span>}
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>jsonFramer</span>) <span style=color:#a6e22e>NewFrameReader</span>(<span style=color:#a6e22e>r</span> <span style=color:#a6e22e>io</span>.<span style=color:#a6e22e>ReadCloser</span>) <span style=color:#a6e22e>io</span>.<span style=color:#a6e22e>ReadCloser</span> {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>jsonFrameReader</span>{<span style=color:#a6e22e>r</span>: <span style=color:#a6e22e>r</span>}
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=protobuf-framing-1>Protobuf Framing</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Protobuf uses length-delimited framing</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>var</span> <span style=color:#a6e22e>LengthDelimitedFramer</span> = <span style=color:#a6e22e>lengthDelimitedFramer</span>{}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>lengthDelimitedFramer</span> <span style=color:#66d9ef>struct</span>{}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>lengthDelimitedFramer</span>) <span style=color:#a6e22e>NewFrameWriter</span>(<span style=color:#a6e22e>w</span> <span style=color:#a6e22e>io</span>.<span style=color:#a6e22e>Writer</span>) <span style=color:#a6e22e>io</span>.<span style=color:#a6e22e>Writer</span> {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>lengthDelimitedFrameWriter</span>{<span style=color:#a6e22e>w</span>: <span style=color:#a6e22e>w</span>}
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=using-streaming>Using Streaming</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Create streaming encoder</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>streamInfo</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>codecFactory</span>.<span style=color:#a6e22e>SupportedMediaTypes</span>()[<span style=color:#ae81ff>0</span>].<span style=color:#a6e22e>StreamSerializer</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>framer</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>streamInfo</span>.<span style=color:#a6e22e>Framer</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>serializer</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>streamInfo</span>.<span style=color:#a6e22e>Serializer</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Create framed writer</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>framedWriter</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>framer</span>.<span style=color:#a6e22e>NewFrameWriter</span>(<span style=color:#a6e22e>writer</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Encode multiple objects</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>for</span> <span style=color:#a6e22e>_</span>, <span style=color:#a6e22e>obj</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>objects</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>serializer</span>.<span style=color:#a6e22e>Encode</span>(<span style=color:#a6e22e>obj</span>, <span style=color:#a6e22e>framedWriter</span>)
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>err</span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=format-recognition>Format Recognition</h2><p>Automatically detect serialization format.</p><h3 id=recognizer>Recognizer</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#f92672>import</span> <span style=color:#e6db74>&#34;k8s.io/apimachinery/pkg/runtime/serializer/recognizer&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Create recognizer with multiple decoders</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>decoder</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>recognizer</span>.<span style=color:#a6e22e>NewDecoder</span>(
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>jsonSerializer</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>yamlSerializer</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>protoSerializer</span>,
+</span></span><span style=display:flex><span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Automatically detects format</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>obj</span>, <span style=color:#a6e22e>gvk</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>decoder</span>.<span style=color:#a6e22e>Decode</span>(<span style=color:#a6e22e>data</span>, <span style=color:#66d9ef>nil</span>, <span style=color:#66d9ef>nil</span>)
+</span></span></code></pre></div><h3 id=recognition-logic>Recognition Logic</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// JSON: starts with &#39;{&#39; or &#39;[&#39;</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// YAML: starts with &#39;---&#39; or has YAML-specific syntax</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Protobuf: binary data with protobuf magic bytes</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// CBOR: starts with CBOR major type</span>
+</span></span></code></pre></div><h2 id=content-negotiation>Content Negotiation</h2><h3 id=negotiated-codec>Negotiated Codec</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>negotiatedSerializer</span> <span style=color:#66d9ef>struct</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>scheme</span>       <span style=color:#f92672>*</span><span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>Scheme</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>serializers</span>  []<span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>SerializerInfo</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=getting-serializer-by-media-type>Getting Serializer by Media Type</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Get supported media types</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>mediaTypes</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>codecFactory</span>.<span style=color:#a6e22e>SupportedMediaTypes</span>()
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Find serializer for media type</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>for</span> <span style=color:#a6e22e>_</span>, <span style=color:#a6e22e>info</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>mediaTypes</span> {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>info</span>.<span style=color:#a6e22e>MediaType</span> <span style=color:#f92672>==</span> <span style=color:#e6db74>&#34;application/json&#34;</span> {
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>serializer</span> = <span style=color:#a6e22e>info</span>.<span style=color:#a6e22e>Serializer</span>
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>break</span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=http-content-negotiation>HTTP Content Negotiation</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Client specifies Accept header</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>Accept</span>: <span style=color:#a6e22e>application</span><span style=color:#f92672>/</span><span style=color:#a6e22e>json</span>, <span style=color:#a6e22e>application</span><span style=color:#f92672>/</span><span style=color:#a6e22e>yaml</span>;<span style=color:#a6e22e>q</span>=<span style=color:#ae81ff>0.9</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Server selects best match</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>SelectSerializer</span>(<span style=color:#a6e22e>accept</span> <span style=color:#66d9ef>string</span>, <span style=color:#a6e22e>available</span> []<span style=color:#a6e22e>SerializerInfo</span>) <span style=color:#a6e22e>SerializerInfo</span> {
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// Parse Accept header</span>
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// Match against available serializers</span>
+</span></span><span style=display:flex><span>    <span style=color:#75715e>// Return best match</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=serialization-options>Serialization Options</h2><h3 id=json-options>JSON Options</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>SerializerOptions</span> <span style=color:#66d9ef>struct</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Yaml</span>   <span style=color:#66d9ef>bool</span>  <span style=color:#75715e>// Output YAML instead of JSON</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Pretty</span> <span style=color:#66d9ef>bool</span>  <span style=color:#75715e>// Pretty print</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>Strict</span> <span style=color:#66d9ef>bool</span>  <span style=color:#75715e>// Strict decoding</span>
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>StreamingCollectionsEncoding</span> <span style=color:#66d9ef>bool</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=protobuf-options>Protobuf Options</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>SerializerOptions</span> <span style=color:#66d9ef>struct</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>StreamingCollectionsEncoding</span> <span style=color:#66d9ef>bool</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=common-patterns>Common Patterns</h2><h3 id=1-universal-decode>1. Universal Decode</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Decode any supported format</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>decoder</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>codecFactory</span>.<span style=color:#a6e22e>UniversalDeserializer</span>()
+</span></span><span style=display:flex><span><span style=color:#a6e22e>obj</span>, <span style=color:#a6e22e>gvk</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>decoder</span>.<span style=color:#a6e22e>Decode</span>(<span style=color:#a6e22e>data</span>, <span style=color:#66d9ef>nil</span>, <span style=color:#66d9ef>nil</span>)
+</span></span></code></pre></div><h3 id=2-encode-to-specific-version>2. Encode to Specific Version</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Encode internal object to v1</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>encoder</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>codecFactory</span>.<span style=color:#a6e22e>EncoderForVersion</span>(
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>jsonSerializer</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>schema</span>.<span style=color:#a6e22e>GroupVersion</span>{<span style=color:#a6e22e>Group</span>: <span style=color:#e6db74>&#34;apps&#34;</span>, <span style=color:#a6e22e>Version</span>: <span style=color:#e6db74>&#34;v1&#34;</span>},
+</span></span><span style=display:flex><span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>var</span> <span style=color:#a6e22e>buf</span> <span style=color:#a6e22e>bytes</span>.<span style=color:#a6e22e>Buffer</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>encoder</span>.<span style=color:#a6e22e>Encode</span>(<span style=color:#a6e22e>internalDeployment</span>, <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>buf</span>)
+</span></span></code></pre></div><h3 id=3-decode-to-specific-version>3. Decode to Specific Version</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Decode to internal version</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>decoder</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>codecFactory</span>.<span style=color:#a6e22e>DecoderToVersion</span>(
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>jsonSerializer</span>,
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>InternalGroupVersioner</span>,
+</span></span><span style=display:flex><span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>obj</span>, <span style=color:#a6e22e>gvk</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>decoder</span>.<span style=color:#a6e22e>Decode</span>(<span style=color:#a6e22e>data</span>, <span style=color:#66d9ef>nil</span>, <span style=color:#66d9ef>nil</span>)
+</span></span></code></pre></div><h3 id=4-round-trip-conversion>4. Round-Trip Conversion</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Encode</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>var</span> <span style=color:#a6e22e>buf</span> <span style=color:#a6e22e>bytes</span>.<span style=color:#a6e22e>Buffer</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>encoder</span>.<span style=color:#a6e22e>Encode</span>(<span style=color:#a6e22e>obj</span>, <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>buf</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Decode</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>obj2</span>, <span style=color:#a6e22e>_</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>decoder</span>.<span style=color:#a6e22e>Decode</span>(<span style=color:#a6e22e>buf</span>.<span style=color:#a6e22e>Bytes</span>(), <span style=color:#66d9ef>nil</span>, <span style=color:#66d9ef>nil</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// obj and obj2 should be equal</span>
+</span></span></code></pre></div><h3 id=5-multi-format-support>5. Multi-Format Support</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>EncodeObject</span>(<span style=color:#a6e22e>obj</span> <span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>Object</span>, <span style=color:#a6e22e>format</span> <span style=color:#66d9ef>string</span>) ([]<span style=color:#66d9ef>byte</span>, <span style=color:#66d9ef>error</span>) {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>var</span> <span style=color:#a6e22e>serializer</span> <span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>Serializer</span>
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>switch</span> <span style=color:#a6e22e>format</span> {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>case</span> <span style=color:#e6db74>&#34;json&#34;</span>:
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>serializer</span> = <span style=color:#a6e22e>jsonSerializer</span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>case</span> <span style=color:#e6db74>&#34;yaml&#34;</span>:
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>serializer</span> = <span style=color:#a6e22e>yamlSerializer</span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>case</span> <span style=color:#e6db74>&#34;protobuf&#34;</span>:
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>serializer</span> = <span style=color:#a6e22e>protoSerializer</span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>default</span>:
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>, <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Errorf</span>(<span style=color:#e6db74>&#34;unsupported format: %s&#34;</span>, <span style=color:#a6e22e>format</span>)
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>var</span> <span style=color:#a6e22e>buf</span> <span style=color:#a6e22e>bytes</span>.<span style=color:#a6e22e>Buffer</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>serializer</span>.<span style=color:#a6e22e>Encode</span>(<span style=color:#a6e22e>obj</span>, <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>buf</span>)
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>buf</span>.<span style=color:#a6e22e>Bytes</span>(), <span style=color:#a6e22e>err</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=performance-considerations>Performance Considerations</h2><h3 id=1-format-selection>1. Format Selection</h3><table><thead><tr><th>Format</th><th>Size</th><th>Speed</th><th>Human Readable</th></tr></thead><tbody><tr><td>JSON</td><td>Medium</td><td>Medium</td><td>Yes</td></tr><tr><td>YAML</td><td>Large</td><td>Slow</td><td>Yes</td></tr><tr><td>Protobuf</td><td>Small</td><td>Fast</td><td>No</td></tr><tr><td>CBOR</td><td>Small</td><td>Fast</td><td>No</td></tr></tbody></table><h3 id=2-streaming-vs-buffered>2. Streaming vs Buffered</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Buffered (loads all into memory)</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>var</span> <span style=color:#a6e22e>buf</span> <span style=color:#a6e22e>bytes</span>.<span style=color:#a6e22e>Buffer</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>for</span> <span style=color:#a6e22e>_</span>, <span style=color:#a6e22e>obj</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>objects</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>encoder</span>.<span style=color:#a6e22e>Encode</span>(<span style=color:#a6e22e>obj</span>, <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>buf</span>)
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span><span style=color:#a6e22e>data</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>buf</span>.<span style=color:#a6e22e>Bytes</span>()
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Streaming (processes one at a time)</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>framedWriter</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>framer</span>.<span style=color:#a6e22e>NewFrameWriter</span>(<span style=color:#a6e22e>writer</span>)
+</span></span><span style=display:flex><span><span style=color:#66d9ef>for</span> <span style=color:#a6e22e>_</span>, <span style=color:#a6e22e>obj</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>objects</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>encoder</span>.<span style=color:#a6e22e>Encode</span>(<span style=color:#a6e22e>obj</span>, <span style=color:#a6e22e>framedWriter</span>)
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=3-caching>3. Caching</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#75715e>// Cache encoded representations</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>CachedObject</span> <span style=color:#66d9ef>struct</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>obj</span>   <span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>Object</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>cache</span> <span style=color:#66d9ef>map</span>[<span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>Identifier</span>][]<span style=color:#66d9ef>byte</span>
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>c</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>CachedObject</span>) <span style=color:#a6e22e>CacheEncode</span>(<span style=color:#a6e22e>id</span> <span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>Identifier</span>, <span style=color:#a6e22e>encode</span> <span style=color:#66d9ef>func</span>(<span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>Object</span>, <span style=color:#a6e22e>io</span>.<span style=color:#a6e22e>Writer</span>) <span style=color:#66d9ef>error</span>, <span style=color:#a6e22e>w</span> <span style=color:#a6e22e>io</span>.<span style=color:#a6e22e>Writer</span>) <span style=color:#66d9ef>error</span> {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>data</span>, <span style=color:#a6e22e>ok</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>cache</span>[<span style=color:#a6e22e>id</span>]; <span style=color:#a6e22e>ok</span> {
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>_</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>w</span>.<span style=color:#a6e22e>Write</span>(<span style=color:#a6e22e>data</span>)
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>err</span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>var</span> <span style=color:#a6e22e>buf</span> <span style=color:#a6e22e>bytes</span>.<span style=color:#a6e22e>Buffer</span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>encode</span>(<span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>obj</span>, <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>buf</span>); <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>err</span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>data</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>buf</span>.<span style=color:#a6e22e>Bytes</span>()
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>cache</span>[<span style=color:#a6e22e>id</span>] = <span style=color:#a6e22e>data</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>_</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>w</span>.<span style=color:#a6e22e>Write</span>(<span style=color:#a6e22e>data</span>)
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>err</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=testing-support>Testing Support</h2><h3 id=mock-serializer>Mock Serializer</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>FakeSerializer</span> <span style=color:#66d9ef>struct</span> {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>EncodeFunc</span> <span style=color:#66d9ef>func</span>(<span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>Object</span>, <span style=color:#a6e22e>io</span>.<span style=color:#a6e22e>Writer</span>) <span style=color:#66d9ef>error</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>DecodeFunc</span> <span style=color:#66d9ef>func</span>([]<span style=color:#66d9ef>byte</span>, <span style=color:#f92672>*</span><span style=color:#a6e22e>schema</span>.<span style=color:#a6e22e>GroupVersionKind</span>, <span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>Object</span>) (<span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>Object</span>, <span style=color:#f92672>*</span><span style=color:#a6e22e>schema</span>.<span style=color:#a6e22e>GroupVersionKind</span>, <span style=color:#66d9ef>error</span>)
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>f</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>FakeSerializer</span>) <span style=color:#a6e22e>Encode</span>(<span style=color:#a6e22e>obj</span> <span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>Object</span>, <span style=color:#a6e22e>w</span> <span style=color:#a6e22e>io</span>.<span style=color:#a6e22e>Writer</span>) <span style=color:#66d9ef>error</span> {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>f</span>.<span style=color:#a6e22e>EncodeFunc</span>(<span style=color:#a6e22e>obj</span>, <span style=color:#a6e22e>w</span>)
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>f</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>FakeSerializer</span>) <span style=color:#a6e22e>Decode</span>(<span style=color:#a6e22e>data</span> []<span style=color:#66d9ef>byte</span>, <span style=color:#a6e22e>defaults</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>schema</span>.<span style=color:#a6e22e>GroupVersionKind</span>, <span style=color:#a6e22e>into</span> <span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>Object</span>) (<span style=color:#a6e22e>runtime</span>.<span style=color:#a6e22e>Object</span>, <span style=color:#f92672>*</span><span style=color:#a6e22e>schema</span>.<span style=color:#a6e22e>GroupVersionKind</span>, <span style=color:#66d9ef>error</span>) {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>f</span>.<span style=color:#a6e22e>DecodeFunc</span>(<span style=color:#a6e22e>data</span>, <span style=color:#a6e22e>defaults</span>, <span style=color:#a6e22e>into</span>)
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h2 id=summary>Summary</h2><p>The serialization package provides:</p><ol><li><strong>Multiple Formats</strong>: JSON, YAML, Protobuf, CBOR</li><li><strong>CodecFactory</strong>: Central factory for creating codecs</li><li><strong>Version Conversion</strong>: Automatic conversion during serialization</li><li><strong>Streaming</strong>: Efficient streaming for large collections</li><li><strong>Content Negotiation</strong>: Select format based on HTTP headers</li><li><strong>Strict Mode</strong>: Validate unknown fields</li><li><strong>Pretty Printing</strong>: Human-readable output</li><li><strong>Format Recognition</strong>: Automatic format detection</li></ol><p>This package enables Kubernetes to support multiple serialization formats while maintaining backward compatibility and providing efficient serialization for different use cases.</p></div><nav class=page-nav><a href=/06-utility-packages/ class=prev>← Utility Packages</a>
+<a href=/04-watch-package/ class=next>Watch Package →</a></nav></article></main></div><script src=/js/theme.js></script><script src=/js/menu.js></script><script src=/js/resize.js></script></body></html>

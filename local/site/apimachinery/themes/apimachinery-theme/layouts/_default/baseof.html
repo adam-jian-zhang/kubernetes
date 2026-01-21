@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .Title }} - {{ .Site.Title }}</title>
+    <link rel="stylesheet" href="{{ "css/style.css" | relURL }}">
+</head>
+<body data-theme="light">
+    <div class="container">
+        <nav id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-controls">
+                    <button id="menu-toggle" class="menu-toggle" title="Toggle Menu">
+                        <span class="hamburger"></span>
+                    </button>
+                    <button id="theme-toggle" class="theme-toggle" title="Toggle Theme">
+                        <span class="theme-icon">🌙</span>
+                    </button>
+                </div>
+                <h2>{{ .Site.Title }}</h2>
+            </div>
+            <div class="sidebar-content">
+                {{ partial "menu.html" . }}
+            </div>
+        </nav>
+        
+        <div class="resize-handle" id="resize-handle"></div>
+        
+        <main class="main-content">
+            <article class="content">
+                {{ block "main" . }}{{ end }}
+            </article>
+        </main>
+    </div>
+    
+    <script src="{{ "js/theme.js" | relURL }}"></script>
+    <script src="{{ "js/menu.js" | relURL }}"></script>
+    <script src="{{ "js/resize.js" | relURL }}"></script>
+</body>
+</html>

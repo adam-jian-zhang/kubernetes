@@ -1,0 +1,43 @@
+graph TB
+    subgraph "Core Interfaces"
+        Object[Object Interface]
+        Scheme[Scheme]
+        Encoder[Encoder Interface]
+        Decoder[Decoder Interface]
+        Codec[Codec Interface]
+    end
+    
+    subgraph "Type System"
+        GVK[GroupVersionKind]
+        Type[Go Type]
+        TypeMeta[TypeMeta]
+    end
+    
+    subgraph "Conversion"
+        Converter[ObjectConvertor]
+        Versioner[ObjectVersioner]
+        Defaulter[ObjectDefaulter]
+    end
+    
+    subgraph "Serialization"
+        JSON[JSON Serializer]
+        YAML[YAML Serializer]
+        Protobuf[Protobuf Serializer]
+        CBOR[CBOR Serializer]
+    end
+    
+    Object --> TypeMeta
+    Object --> Scheme
+    Scheme --> GVK
+    Scheme --> Type
+    Scheme --> Converter
+    Codec --> Encoder
+    Codec --> Decoder
+    Encoder --> JSON
+    Encoder --> YAML
+    Encoder --> Protobuf
+    Encoder --> CBOR
+    
+    style Scheme fill:#e1f5ff
+    style Object fill:#fff4e1
+    style Codec fill:#f0ffe1

@@ -1,0 +1,5 @@
+name = "Apimachinery Theme"
+license = "Apache-2.0"
+description = "Custom theme for apimachinery documentation"
+min_version = "0.120.0"
+

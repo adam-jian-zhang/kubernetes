@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en-us" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Comprehensive documentation for k8s.io/client-go - the official Kubernetes Go client library">
+    <title>Utilities and Supporting Packages | client-go Documentation</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h1 class="sidebar-title">
+                    <i class="fas fa-cube"></i>
+                    <span class="sidebar-title-text">client-go</span>
+                </h1>
+                <button id="theme-toggle" class="icon-btn" title="Toggle theme">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+            
+            <nav class="sidebar-nav">
+                
+                
+                <a href="/" class="nav-link ">
+                    <span class="nav-text">Home</span>
+                </a>
+                
+                <a href="/00-overview/" class="nav-link ">
+                    <span class="nav-text">Overview</span>
+                </a>
+                
+                <a href="/01-core-packages/" class="nav-link ">
+                    <span class="nav-text">Core Packages</span>
+                </a>
+                
+                <a href="/02-configuration/" class="nav-link ">
+                    <span class="nav-text">Configuration</span>
+                </a>
+                
+                <a href="/03-controller-infrastructure/" class="nav-link ">
+                    <span class="nav-text">Controllers</span>
+                </a>
+                
+                <a href="/04-advanced-features/" class="nav-link ">
+                    <span class="nav-text">Advanced Features</span>
+                </a>
+                
+                <a href="/05-utilities/" class="nav-link active">
+                    <span class="nav-text">Utilities</span>
+                </a>
+                
+                <a href="/06-examples/" class="nav-link ">
+                    <span class="nav-text">Examples</span>
+                </a>
+                
+                <a href="/index-page/" class="nav-link ">
+                    <span class="nav-text">Index</span>
+                </a>
+                
+            </nav>
+            
+            <div class="sidebar-footer">
+                <a href="https://github.com/kubernetes/client-go" target="_blank" class="github-link">
+                    <i class="fab fa-github"></i>
+                    <span class="nav-text">GitHub</span>
+                </a>
+            </div>
+        </aside>
+
+        
+        <div id="resize-handle" class="resize-handle"></div>
+
+        
+        <main class="main-content">
+            <div class="content-header">
+                <button id="menu-toggle" class="icon-btn" title="Toggle menu">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1 class="page-title">Utilities and Supporting Packages</h1>
+            </div>
+            
+            <div class="content-body">
+                
+<article class="article">
+    <h1 id="utilities-and-supporting-packages">Utilities and Supporting Packages</h1>
+<p>This document covers utility packages and supporting functionality in <code>client-go</code>.</p>
+<h2 id="package-overview">Package Overview</h2>
+<div class="mermaid-diagram"><img src="/images/diagram_08129b51142cd9c1.svg" alt="Diagram" /></div>
+<h2 id="transport-package">transport Package</h2>
+<p><strong>Location</strong>: <code>transport/</code></p>
+<p>The transport package provides HTTP transport configuration and utilities.</p>
+<h3 id="transport-configuration">Transport Configuration</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">import</span> <span style="color:#e6db74">&#34;k8s.io/client-go/transport&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Create transport config</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">transportConfig</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">transport</span>.<span style="color:#a6e22e">Config</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// TLS configuration</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">TLS</span>: <span style="color:#a6e22e">transport</span>.<span style="color:#a6e22e">TLSConfig</span>{
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">CAFile</span>:   <span style="color:#e6db74">&#34;/path/to/ca.crt&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">CertFile</span>: <span style="color:#e6db74">&#34;/path/to/client.crt&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">KeyFile</span>:  <span style="color:#e6db74">&#34;/path/to/client.key&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Insecure</span>: <span style="color:#66d9ef">false</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">ServerName</span>: <span style="color:#e6db74">&#34;kubernetes.default.svc&#34;</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Authentication</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">BearerToken</span>: <span style="color:#e6db74">&#34;token&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Username</span>:    <span style="color:#e6db74">&#34;user&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Password</span>:    <span style="color:#e6db74">&#34;pass&#34;</span>,
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Impersonation</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Impersonate</span>: <span style="color:#a6e22e">transport</span>.<span style="color:#a6e22e">ImpersonationConfig</span>{
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">UserName</span>: <span style="color:#e6db74">&#34;impersonated-user&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Groups</span>:   []<span style="color:#66d9ef">string</span>{<span style="color:#e6db74">&#34;system:masters&#34;</span>},
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Proxy</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Proxy</span>: <span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">req</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">Request</span>) (<span style="color:#f92672">*</span><span style="color:#a6e22e">url</span>.<span style="color:#a6e22e">URL</span>, <span style="color:#66d9ef">error</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">url</span>.<span style="color:#a6e22e">Parse</span>(<span style="color:#e6db74">&#34;http://proxy:8080&#34;</span>)
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// User agent</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">UserAgent</span>: <span style="color:#e6db74">&#34;my-client/v1.0.0&#34;</span>,
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Transport wrapper</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">WrapTransport</span>: <span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">rt</span> <span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">RoundTripper</span>) <span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">RoundTripper</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">loggingRoundTripper</span>{<span style="color:#a6e22e">base</span>: <span style="color:#a6e22e">rt</span>}
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Create HTTP transport</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">httpTransport</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">transport</span>.<span style="color:#a6e22e">New</span>(<span style="color:#a6e22e">transportConfig</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Use with HTTP client</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">httpClient</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">Client</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Transport</span>: <span style="color:#a6e22e">httpTransport</span>,
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="round-tripper-wrappers">Round Tripper Wrappers</h3>
+<p>Round trippers can be chained to add functionality:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Logging round tripper</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">loggingRoundTripper</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">base</span> <span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">RoundTripper</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">rt</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">loggingRoundTripper</span>) <span style="color:#a6e22e">RoundTrip</span>(<span style="color:#a6e22e">req</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">Request</span>) (<span style="color:#f92672">*</span><span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">Response</span>, <span style="color:#66d9ef">error</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">start</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Now</span>()
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">resp</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">rt</span>.<span style="color:#a6e22e">base</span>.<span style="color:#a6e22e">RoundTrip</span>(<span style="color:#a6e22e">req</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">duration</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Since</span>(<span style="color:#a6e22e">start</span>)
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">log</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;%s %s - %d (%v)&#34;</span>, <span style="color:#a6e22e">req</span>.<span style="color:#a6e22e">Method</span>, <span style="color:#a6e22e">req</span>.<span style="color:#a6e22e">URL</span>, <span style="color:#a6e22e">resp</span>.<span style="color:#a6e22e">StatusCode</span>, <span style="color:#a6e22e">duration</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">resp</span>, <span style="color:#a6e22e">err</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Retry round tripper</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">retryRoundTripper</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">base</span>       <span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">RoundTripper</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">maxRetries</span> <span style="color:#66d9ef">int</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">rt</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">retryRoundTripper</span>) <span style="color:#a6e22e">RoundTrip</span>(<span style="color:#a6e22e">req</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">Request</span>) (<span style="color:#f92672">*</span><span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">Response</span>, <span style="color:#66d9ef">error</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">resp</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">Response</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">err</span> <span style="color:#66d9ef">error</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">for</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">:=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;=</span> <span style="color:#a6e22e">rt</span>.<span style="color:#a6e22e">maxRetries</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">resp</span>, <span style="color:#a6e22e">err</span> = <span style="color:#a6e22e">rt</span>.<span style="color:#a6e22e">base</span>.<span style="color:#a6e22e">RoundTrip</span>(<span style="color:#a6e22e">req</span>)
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">resp</span>.<span style="color:#a6e22e">StatusCode</span> &lt; <span style="color:#ae81ff">500</span> {
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">resp</span>, <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>        
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">i</span> &lt; <span style="color:#a6e22e">rt</span>.<span style="color:#a6e22e">maxRetries</span> {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Sleep</span>(<span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Duration</span>(<span style="color:#a6e22e">i</span><span style="color:#f92672">+</span><span style="color:#ae81ff">1</span>))
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">resp</span>, <span style="color:#a6e22e">err</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="plugin-package">plugin Package</h2>
+<p><strong>Location</strong>: <code>plugin/pkg/client/auth/</code></p>
+<p>The plugin package provides authentication plugins for various cloud providers and identity systems.</p>
+<h3 id="available-plugins">Available Plugins</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">import</span> (
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Azure AD authentication</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">_</span> <span style="color:#e6db74">&#34;k8s.io/client-go/plugin/pkg/client/auth/azure&#34;</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Google Cloud Platform authentication</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">_</span> <span style="color:#e6db74">&#34;k8s.io/client-go/plugin/pkg/client/auth/gcp&#34;</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// OpenID Connect authentication</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">_</span> <span style="color:#e6db74">&#34;k8s.io/client-go/plugin/pkg/client/auth/oidc&#34;</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Exec-based authentication</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">_</span> <span style="color:#e6db74">&#34;k8s.io/client-go/plugin/pkg/client/auth/exec&#34;</span>
+</span></span><span style="display:flex;"><span>)
+</span></span></code></pre></div><h3 id="exec-plugin">Exec Plugin</h3>
+<p>The exec plugin allows external commands to provide authentication:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#75715e"># In kubeconfig</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">users</span>:
+</span></span><span style="display:flex;"><span>- <span style="color:#f92672">name</span>: <span style="color:#ae81ff">my-user</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">user</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">exec</span>:
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">apiVersion</span>: <span style="color:#ae81ff">client.authentication.k8s.io/v1</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">command</span>: <span style="color:#ae81ff">aws</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">args</span>:
+</span></span><span style="display:flex;"><span>        - <span style="color:#ae81ff">eks</span>
+</span></span><span style="display:flex;"><span>        - <span style="color:#ae81ff">get-token</span>
+</span></span><span style="display:flex;"><span>        - --<span style="color:#ae81ff">cluster-name</span>
+</span></span><span style="display:flex;"><span>        - <span style="color:#ae81ff">my-cluster</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">env</span>:
+</span></span><span style="display:flex;"><span>        - <span style="color:#f92672">name</span>: <span style="color:#ae81ff">AWS_PROFILE</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#f92672">value</span>: <span style="color:#ae81ff">production</span>
+</span></span></code></pre></div><h2 id="toolsrecord-package">tools/record Package</h2>
+<p><strong>Location</strong>: <code>tools/record/</code></p>
+<p>The record package provides event recording functionality for controllers.</p>
+<h3 id="event-recorder">Event Recorder</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">import</span> (
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;k8s.io/client-go/tools/record&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;k8s.io/client-go/kubernetes/scheme&#34;</span>
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Create event broadcaster</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">eventBroadcaster</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">record</span>.<span style="color:#a6e22e">NewBroadcaster</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Start logging events</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">eventBroadcaster</span>.<span style="color:#a6e22e">StartLogging</span>(<span style="color:#a6e22e">klog</span>.<span style="color:#a6e22e">Infof</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Start recording events to API server</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">eventBroadcaster</span>.<span style="color:#a6e22e">StartRecordingToSink</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">typedcorev1</span>.<span style="color:#a6e22e">EventSinkImpl</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Interface</span>: <span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">CoreV1</span>().<span style="color:#a6e22e">Events</span>(<span style="color:#e6db74">&#34;&#34;</span>),
+</span></span><span style="display:flex;"><span>})
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Create event recorder</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">recorder</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">eventBroadcaster</span>.<span style="color:#a6e22e">NewRecorder</span>(<span style="color:#a6e22e">scheme</span>.<span style="color:#a6e22e">Scheme</span>, <span style="color:#a6e22e">corev1</span>.<span style="color:#a6e22e">EventSource</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Component</span>: <span style="color:#e6db74">&#34;my-controller&#34;</span>,
+</span></span><span style="display:flex;"><span>})
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Record events</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">recorder</span>.<span style="color:#a6e22e">Event</span>(<span style="color:#a6e22e">pod</span>, <span style="color:#a6e22e">corev1</span>.<span style="color:#a6e22e">EventTypeNormal</span>, <span style="color:#e6db74">&#34;Started&#34;</span>, <span style="color:#e6db74">&#34;Pod started successfully&#34;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">recorder</span>.<span style="color:#a6e22e">Eventf</span>(<span style="color:#a6e22e">pod</span>, <span style="color:#a6e22e">corev1</span>.<span style="color:#a6e22e">EventTypeWarning</span>, <span style="color:#e6db74">&#34;Failed&#34;</span>, <span style="color:#e6db74">&#34;Failed to start: %v&#34;</span>, <span style="color:#a6e22e">err</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Record events with annotations</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">recorder</span>.<span style="color:#a6e22e">AnnotatedEventf</span>(
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">pod</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">map</span>[<span style="color:#66d9ef">string</span>]<span style="color:#66d9ef">string</span>{<span style="color:#e6db74">&#34;controller&#34;</span>: <span style="color:#e6db74">&#34;my-controller&#34;</span>},
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">corev1</span>.<span style="color:#a6e22e">EventTypeNormal</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;Synced&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;Pod synced successfully&#34;</span>,
+</span></span><span style="display:flex;"><span>)
+</span></span></code></pre></div><h3 id="event-types">Event Types</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">const</span> (
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">EventTypeNormal</span>  = <span style="color:#e6db74">&#34;Normal&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">EventTypeWarning</span> = <span style="color:#e6db74">&#34;Warning&#34;</span>
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Common event reasons</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> (
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">ReasonSuccessfulCreate</span>  = <span style="color:#e6db74">&#34;SuccessfulCreate&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">ReasonFailedCreate</span>      = <span style="color:#e6db74">&#34;FailedCreate&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">ReasonSuccessfulDelete</span>  = <span style="color:#e6db74">&#34;SuccessfulDelete&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">ReasonFailedDelete</span>      = <span style="color:#e6db74">&#34;FailedDelete&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">ReasonSuccessfulUpdate</span>  = <span style="color:#e6db74">&#34;SuccessfulUpdate&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">ReasonFailedUpdate</span>      = <span style="color:#e6db74">&#34;FailedUpdate&#34;</span>
+</span></span><span style="display:flex;"><span>)
+</span></span></code></pre></div><h2 id="toolsevents-package">tools/events Package</h2>
+<p><strong>Location</strong>: <code>tools/events/</code></p>
+<p>The events package provides the newer Events API (events.k8s.io/v1).</p>
+<h3 id="event-recorder-events-api">Event Recorder (Events API)</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">import</span> (
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;k8s.io/client-go/tools/events&#34;</span>
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Create event broadcaster</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">eventBroadcaster</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">events</span>.<span style="color:#a6e22e">NewBroadcaster</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">events</span>.<span style="color:#a6e22e">EventSinkImpl</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Interface</span>: <span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">EventsV1</span>(),
+</span></span><span style="display:flex;"><span>})
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Start event processing</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">eventBroadcaster</span>.<span style="color:#a6e22e">StartRecordingToSink</span>(<span style="color:#a6e22e">ctx</span>.<span style="color:#a6e22e">Done</span>())
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Create event recorder</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">recorder</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">eventBroadcaster</span>.<span style="color:#a6e22e">NewRecorder</span>(<span style="color:#a6e22e">scheme</span>.<span style="color:#a6e22e">Scheme</span>, <span style="color:#e6db74">&#34;my-controller&#34;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Record events</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">recorder</span>.<span style="color:#a6e22e">Eventf</span>(<span style="color:#a6e22e">pod</span>, <span style="color:#66d9ef">nil</span>, <span style="color:#a6e22e">corev1</span>.<span style="color:#a6e22e">EventTypeNormal</span>, <span style="color:#e6db74">&#34;Started&#34;</span>, <span style="color:#e6db74">&#34;Action&#34;</span>, <span style="color:#e6db74">&#34;Pod started successfully&#34;</span>)
+</span></span></code></pre></div><h3 id="event-vs-events-api">Event vs Events API</h3>
+<table>
+  <thead>
+      <tr>
+          <th>Feature</th>
+          <th>core/v1 Events</th>
+          <th>events.k8s.io/v1 Events</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>API Group</td>
+          <td>core/v1</td>
+          <td>events.k8s.io/v1</td>
+      </tr>
+      <tr>
+          <td>Event Series</td>
+          <td>Limited</td>
+          <td>Full support</td>
+      </tr>
+      <tr>
+          <td>Structured Data</td>
+          <td>Basic</td>
+          <td>Enhanced</td>
+      </tr>
+      <tr>
+          <td>Recommended</td>
+          <td>Legacy</td>
+          <td>✅ New implementations</td>
+      </tr>
+  </tbody>
+</table>
+<h2 id="toolsremotecommand-package">tools/remotecommand Package</h2>
+<p><strong>Location</strong>: <code>tools/remotecommand/</code></p>
+<p>The remotecommand package provides functionality for executing commands in containers and attaching to them.</p>
+<h3 id="executing-commands">Executing Commands</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">import</span> (
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;k8s.io/client-go/tools/remotecommand&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;k8s.io/client-go/kubernetes/scheme&#34;</span>
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Create exec request</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">req</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">CoreV1</span>().<span style="color:#a6e22e">RESTClient</span>().<span style="color:#a6e22e">Post</span>().
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Resource</span>(<span style="color:#e6db74">&#34;pods&#34;</span>).
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Name</span>(<span style="color:#e6db74">&#34;my-pod&#34;</span>).
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Namespace</span>(<span style="color:#e6db74">&#34;default&#34;</span>).
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">SubResource</span>(<span style="color:#e6db74">&#34;exec&#34;</span>).
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">VersionedParams</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">corev1</span>.<span style="color:#a6e22e">PodExecOptions</span>{
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Container</span>: <span style="color:#e6db74">&#34;nginx&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Command</span>:   []<span style="color:#66d9ef">string</span>{<span style="color:#e6db74">&#34;ls&#34;</span>, <span style="color:#e6db74">&#34;-la&#34;</span>, <span style="color:#e6db74">&#34;/&#34;</span>},
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Stdin</span>:     <span style="color:#66d9ef">false</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Stdout</span>:    <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Stderr</span>:    <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">TTY</span>:       <span style="color:#66d9ef">false</span>,
+</span></span><span style="display:flex;"><span>    }, <span style="color:#a6e22e">scheme</span>.<span style="color:#a6e22e">ParameterCodec</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Create executor</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">exec</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">remotecommand</span>.<span style="color:#a6e22e">NewSPDYExecutor</span>(<span style="color:#a6e22e">config</span>, <span style="color:#e6db74">&#34;POST&#34;</span>, <span style="color:#a6e22e">req</span>.<span style="color:#a6e22e">URL</span>())
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">err</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Execute command</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">stdout</span>, <span style="color:#a6e22e">stderr</span> <span style="color:#a6e22e">bytes</span>.<span style="color:#a6e22e">Buffer</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">err</span> = <span style="color:#a6e22e">exec</span>.<span style="color:#a6e22e">StreamWithContext</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">remotecommand</span>.<span style="color:#a6e22e">StreamOptions</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Stdout</span>: <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">stdout</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Stderr</span>: <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">stderr</span>,
+</span></span><span style="display:flex;"><span>})
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;Output: %s\n&#34;</span>, <span style="color:#a6e22e">stdout</span>.<span style="color:#a6e22e">String</span>())
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;Error: %s\n&#34;</span>, <span style="color:#a6e22e">stderr</span>.<span style="color:#a6e22e">String</span>())
+</span></span></code></pre></div><h3 id="interactive-exec">Interactive Exec</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Interactive exec with stdin</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">req</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">CoreV1</span>().<span style="color:#a6e22e">RESTClient</span>().<span style="color:#a6e22e">Post</span>().
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Resource</span>(<span style="color:#e6db74">&#34;pods&#34;</span>).
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Name</span>(<span style="color:#e6db74">&#34;my-pod&#34;</span>).
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Namespace</span>(<span style="color:#e6db74">&#34;default&#34;</span>).
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">SubResource</span>(<span style="color:#e6db74">&#34;exec&#34;</span>).
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">VersionedParams</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">corev1</span>.<span style="color:#a6e22e">PodExecOptions</span>{
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Container</span>: <span style="color:#e6db74">&#34;nginx&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Command</span>:   []<span style="color:#66d9ef">string</span>{<span style="color:#e6db74">&#34;/bin/sh&#34;</span>},
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Stdin</span>:     <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Stdout</span>:    <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Stderr</span>:    <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">TTY</span>:       <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>    }, <span style="color:#a6e22e">scheme</span>.<span style="color:#a6e22e">ParameterCodec</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">exec</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">remotecommand</span>.<span style="color:#a6e22e">NewSPDYExecutor</span>(<span style="color:#a6e22e">config</span>, <span style="color:#e6db74">&#34;POST&#34;</span>, <span style="color:#a6e22e">req</span>.<span style="color:#a6e22e">URL</span>())
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Use with terminal</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">err</span> = <span style="color:#a6e22e">exec</span>.<span style="color:#a6e22e">StreamWithContext</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">remotecommand</span>.<span style="color:#a6e22e">StreamOptions</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Stdin</span>:  <span style="color:#a6e22e">os</span>.<span style="color:#a6e22e">Stdin</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Stdout</span>: <span style="color:#a6e22e">os</span>.<span style="color:#a6e22e">Stdout</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Stderr</span>: <span style="color:#a6e22e">os</span>.<span style="color:#a6e22e">Stderr</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Tty</span>:    <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>})
+</span></span></code></pre></div><h3 id="attaching-to-containers">Attaching to Containers</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Attach to running container</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">req</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">CoreV1</span>().<span style="color:#a6e22e">RESTClient</span>().<span style="color:#a6e22e">Post</span>().
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Resource</span>(<span style="color:#e6db74">&#34;pods&#34;</span>).
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Name</span>(<span style="color:#e6db74">&#34;my-pod&#34;</span>).
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Namespace</span>(<span style="color:#e6db74">&#34;default&#34;</span>).
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">SubResource</span>(<span style="color:#e6db74">&#34;attach&#34;</span>).
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">VersionedParams</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">corev1</span>.<span style="color:#a6e22e">PodAttachOptions</span>{
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Container</span>: <span style="color:#e6db74">&#34;nginx&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Stdin</span>:     <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Stdout</span>:    <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Stderr</span>:    <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">TTY</span>:       <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>    }, <span style="color:#a6e22e">scheme</span>.<span style="color:#a6e22e">ParameterCodec</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">exec</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">remotecommand</span>.<span style="color:#a6e22e">NewSPDYExecutor</span>(<span style="color:#a6e22e">config</span>, <span style="color:#e6db74">&#34;POST&#34;</span>, <span style="color:#a6e22e">req</span>.<span style="color:#a6e22e">URL</span>())
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">err</span> = <span style="color:#a6e22e">exec</span>.<span style="color:#a6e22e">StreamWithContext</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">remotecommand</span>.<span style="color:#a6e22e">StreamOptions</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Stdin</span>:  <span style="color:#a6e22e">os</span>.<span style="color:#a6e22e">Stdin</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Stdout</span>: <span style="color:#a6e22e">os</span>.<span style="color:#a6e22e">Stdout</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Stderr</span>: <span style="color:#a6e22e">os</span>.<span style="color:#a6e22e">Stderr</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Tty</span>:    <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>})
+</span></span></code></pre></div><h2 id="toolsportforward-package">tools/portforward Package</h2>
+<p><strong>Location</strong>: <code>tools/portforward/</code></p>
+<p>The portforward package provides port forwarding functionality.</p>
+<h3 id="port-forwarding">Port Forwarding</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">import</span> (
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;k8s.io/client-go/tools/portforward&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;k8s.io/client-go/transport/spdy&#34;</span>
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Create port forward request</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">req</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">CoreV1</span>().<span style="color:#a6e22e">RESTClient</span>().<span style="color:#a6e22e">Post</span>().
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Resource</span>(<span style="color:#e6db74">&#34;pods&#34;</span>).
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Name</span>(<span style="color:#e6db74">&#34;my-pod&#34;</span>).
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Namespace</span>(<span style="color:#e6db74">&#34;default&#34;</span>).
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">SubResource</span>(<span style="color:#e6db74">&#34;portforward&#34;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Create SPDY transport</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">transport</span>, <span style="color:#a6e22e">upgrader</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">spdy</span>.<span style="color:#a6e22e">RoundTripperFor</span>(<span style="color:#a6e22e">config</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">err</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Create dialer</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">dialer</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">spdy</span>.<span style="color:#a6e22e">NewDialer</span>(<span style="color:#a6e22e">upgrader</span>, <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">Client</span>{<span style="color:#a6e22e">Transport</span>: <span style="color:#a6e22e">transport</span>}, <span style="color:#e6db74">&#34;POST&#34;</span>, <span style="color:#a6e22e">req</span>.<span style="color:#a6e22e">URL</span>())
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Setup port forwarding</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">stopChan</span> <span style="color:#f92672">:=</span> make(<span style="color:#66d9ef">chan</span> <span style="color:#66d9ef">struct</span>{}, <span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">readyChan</span> <span style="color:#f92672">:=</span> make(<span style="color:#66d9ef">chan</span> <span style="color:#66d9ef">struct</span>{})
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">ports</span> <span style="color:#f92672">:=</span> []<span style="color:#66d9ef">string</span>{<span style="color:#e6db74">&#34;8080:80&#34;</span>, <span style="color:#e6db74">&#34;8443:443&#34;</span>}  <span style="color:#75715e">// local:remote</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">forwarder</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">portforward</span>.<span style="color:#a6e22e">New</span>(
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">dialer</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">ports</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">stopChan</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">readyChan</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">os</span>.<span style="color:#a6e22e">Stdout</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">os</span>.<span style="color:#a6e22e">Stderr</span>,
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Start forwarding</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">go</span> <span style="color:#66d9ef">func</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">forwarder</span>.<span style="color:#a6e22e">ForwardPorts</span>(); <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">log</span>.<span style="color:#a6e22e">Fatal</span>(<span style="color:#a6e22e">err</span>)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Wait for ready</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">readyChan</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;Port forwarding is ready&#34;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Use the forwarded ports</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Connect to localhost:8080 to reach pod&#39;s port 80</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Stop forwarding</span>
+</span></span><span style="display:flex;"><span>close(<span style="color:#a6e22e">stopChan</span>)
+</span></span></code></pre></div><h2 id="util-package">util Package</h2>
+<p><strong>Location</strong>: <code>util/</code></p>
+<p>The util package contains various utility functions.</p>
+<h3 id="utilretry">util/retry</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">import</span> <span style="color:#e6db74">&#34;k8s.io/client-go/util/retry&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Retry with exponential backoff</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">retry</span>.<span style="color:#a6e22e">RetryOnConflict</span>(<span style="color:#a6e22e">retry</span>.<span style="color:#a6e22e">DefaultRetry</span>, <span style="color:#66d9ef">func</span>() <span style="color:#66d9ef">error</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Get latest version</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">deployment</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">AppsV1</span>().<span style="color:#a6e22e">Deployments</span>(<span style="color:#e6db74">&#34;default&#34;</span>).
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Get</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#e6db74">&#34;my-deployment&#34;</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">GetOptions</span>{})
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">err</span>
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Modify</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">deployment</span>.<span style="color:#a6e22e">Spec</span>.<span style="color:#a6e22e">Replicas</span> = <span style="color:#a6e22e">ptr</span>.<span style="color:#a6e22e">To</span>[<span style="color:#66d9ef">int32</span>](<span style="color:#ae81ff">3</span>)
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Update</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">_</span>, <span style="color:#a6e22e">err</span> = <span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">AppsV1</span>().<span style="color:#a6e22e">Deployments</span>(<span style="color:#e6db74">&#34;default&#34;</span>).
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Update</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">deployment</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">UpdateOptions</span>{})
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">err</span>
+</span></span><span style="display:flex;"><span>})
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Custom backoff</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">customBackoff</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">wait</span>.<span style="color:#a6e22e">Backoff</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Steps</span>:    <span style="color:#ae81ff">5</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Duration</span>: <span style="color:#ae81ff">10</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Millisecond</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Factor</span>:   <span style="color:#ae81ff">2.0</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Jitter</span>:   <span style="color:#ae81ff">0.1</span>,
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">retry</span>.<span style="color:#a6e22e">OnError</span>(<span style="color:#a6e22e">customBackoff</span>, <span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">err</span> <span style="color:#66d9ef">error</span>) <span style="color:#66d9ef">bool</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Return true to retry on this error</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">errors</span>.<span style="color:#a6e22e">IsServerTimeout</span>(<span style="color:#a6e22e">err</span>) <span style="color:#f92672">||</span> <span style="color:#a6e22e">errors</span>.<span style="color:#a6e22e">IsTimeout</span>(<span style="color:#a6e22e">err</span>)
+</span></span><span style="display:flex;"><span>}, <span style="color:#66d9ef">func</span>() <span style="color:#66d9ef">error</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Operation to retry</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">doSomething</span>()
+</span></span><span style="display:flex;"><span>})
+</span></span></code></pre></div><h3 id="utilflowcontrol">util/flowcontrol</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">import</span> <span style="color:#e6db74">&#34;k8s.io/client-go/util/flowcontrol&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Create rate limiter</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">rateLimiter</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">flowcontrol</span>.<span style="color:#a6e22e">NewTokenBucketRateLimiter</span>(
+</span></span><span style="display:flex;"><span>    <span style="color:#ae81ff">10.0</span>,  <span style="color:#75715e">// QPS</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#ae81ff">20</span>,    <span style="color:#75715e">// Burst</span>
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Wait for token</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">rateLimiter</span>.<span style="color:#a6e22e">Wait</span>(<span style="color:#a6e22e">ctx</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Try to acquire token without waiting</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> <span style="color:#a6e22e">rateLimiter</span>.<span style="color:#a6e22e">TryAccept</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Token acquired</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">doWork</span>()
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="utilhomedir">util/homedir</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">import</span> <span style="color:#e6db74">&#34;k8s.io/client-go/util/homedir&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Get home directory</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">homeDir</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">homedir</span>.<span style="color:#a6e22e">HomeDir</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Construct kubeconfig path</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">kubeconfigPath</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">filepath</span>.<span style="color:#a6e22e">Join</span>(<span style="color:#a6e22e">homeDir</span>, <span style="color:#e6db74">&#34;.kube&#34;</span>, <span style="color:#e6db74">&#34;config&#34;</span>)
+</span></span></code></pre></div><h2 id="testing-package">testing Package</h2>
+<p><strong>Location</strong>: <code>testing/</code></p>
+<p>The testing package provides utilities for testing code that uses client-go.</p>
+<h3 id="fake-clientset">Fake Clientset</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">import</span> (
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;k8s.io/client-go/kubernetes/fake&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;k8s.io/apimachinery/pkg/runtime&#34;</span>
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Create fake clientset with initial objects</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">pod</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">corev1</span>.<span style="color:#a6e22e">Pod</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">ObjectMeta</span>: <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">ObjectMeta</span>{
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Name</span>:      <span style="color:#e6db74">&#34;test-pod&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Namespace</span>: <span style="color:#e6db74">&#34;default&#34;</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">fakeClientset</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">fake</span>.<span style="color:#a6e22e">NewSimpleClientset</span>(<span style="color:#a6e22e">pod</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Use like real clientset</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">pod</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">fakeClientset</span>.<span style="color:#a6e22e">CoreV1</span>().<span style="color:#a6e22e">Pods</span>(<span style="color:#e6db74">&#34;default&#34;</span>).
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Get</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#e6db74">&#34;test-pod&#34;</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">GetOptions</span>{})
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Create new objects</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">newPod</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">corev1</span>.<span style="color:#a6e22e">Pod</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">ObjectMeta</span>: <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">ObjectMeta</span>{
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Name</span>:      <span style="color:#e6db74">&#34;new-pod&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Namespace</span>: <span style="color:#e6db74">&#34;default&#34;</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">created</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">fakeClientset</span>.<span style="color:#a6e22e">CoreV1</span>().<span style="color:#a6e22e">Pods</span>(<span style="color:#e6db74">&#34;default&#34;</span>).
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Create</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">newPod</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">CreateOptions</span>{})
+</span></span></code></pre></div><h3 id="fake-dynamic-client">Fake Dynamic Client</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">import</span> (
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;k8s.io/client-go/dynamic/fake&#34;</span>
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Create fake dynamic client</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">scheme</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">runtime</span>.<span style="color:#a6e22e">NewScheme</span>()
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">fakeDynamicClient</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">fake</span>.<span style="color:#a6e22e">NewSimpleDynamicClient</span>(<span style="color:#a6e22e">scheme</span>, <span style="color:#a6e22e">objects</span><span style="color:#f92672">...</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Use like real dynamic client</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">gvr</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">schema</span>.<span style="color:#a6e22e">GroupVersionResource</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Group</span>:    <span style="color:#e6db74">&#34;apps&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Version</span>:  <span style="color:#e6db74">&#34;v1&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Resource</span>: <span style="color:#e6db74">&#34;deployments&#34;</span>,
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">obj</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">fakeDynamicClient</span>.<span style="color:#a6e22e">Resource</span>(<span style="color:#a6e22e">gvr</span>).<span style="color:#a6e22e">Namespace</span>(<span style="color:#e6db74">&#34;default&#34;</span>).
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Get</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#e6db74">&#34;my-deployment&#34;</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">GetOptions</span>{})
+</span></span></code></pre></div><h3 id="reactor-pattern-for-testing">Reactor Pattern for Testing</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Add custom reactor</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">fakeClientset</span>.<span style="color:#a6e22e">PrependReactor</span>(<span style="color:#e6db74">&#34;create&#34;</span>, <span style="color:#e6db74">&#34;pods&#34;</span>, <span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">action</span> <span style="color:#a6e22e">testing</span>.<span style="color:#a6e22e">Action</span>) (<span style="color:#66d9ef">bool</span>, <span style="color:#a6e22e">runtime</span>.<span style="color:#a6e22e">Object</span>, <span style="color:#66d9ef">error</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">createAction</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">action</span>.(<span style="color:#a6e22e">testing</span>.<span style="color:#a6e22e">CreateAction</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">pod</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">createAction</span>.<span style="color:#a6e22e">GetObject</span>().(<span style="color:#f92672">*</span><span style="color:#a6e22e">corev1</span>.<span style="color:#a6e22e">Pod</span>)
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Custom logic</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">pod</span>.<span style="color:#a6e22e">Name</span> <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;fail&#34;</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">true</span>, <span style="color:#66d9ef">nil</span>, <span style="color:#a6e22e">errors</span>.<span style="color:#a6e22e">NewInternalError</span>(<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Errorf</span>(<span style="color:#e6db74">&#34;simulated error&#34;</span>))
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Let default handler process</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>, <span style="color:#66d9ef">nil</span>, <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>})
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Add watch reactor</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">fakeClientset</span>.<span style="color:#a6e22e">PrependWatchReactor</span>(<span style="color:#e6db74">&#34;pods&#34;</span>, <span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">action</span> <span style="color:#a6e22e">testing</span>.<span style="color:#a6e22e">Action</span>) (<span style="color:#66d9ef">bool</span>, <span style="color:#a6e22e">watch</span>.<span style="color:#a6e22e">Interface</span>, <span style="color:#66d9ef">error</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">watcher</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">watch</span>.<span style="color:#a6e22e">NewFake</span>()
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Send events</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">go</span> <span style="color:#66d9ef">func</span>() {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Sleep</span>(<span style="color:#ae81ff">100</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Millisecond</span>)
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">watcher</span>.<span style="color:#a6e22e">Add</span>(<span style="color:#a6e22e">pod</span>)
+</span></span><span style="display:flex;"><span>    }()
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">true</span>, <span style="color:#a6e22e">watcher</span>, <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>})
+</span></span></code></pre></div><h2 id="features-package">features Package</h2>
+<p><strong>Location</strong>: <code>features/</code></p>
+<p>The features package provides client-side feature gates.</p>
+<h3 id="feature-gates">Feature Gates</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">import</span> (
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;k8s.io/client-go/features&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">utilfeature</span> <span style="color:#e6db74">&#34;k8s.io/apiserver/pkg/util/feature&#34;</span>
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Check if feature is enabled</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> <span style="color:#a6e22e">utilfeature</span>.<span style="color:#a6e22e">DefaultFeatureGate</span>.<span style="color:#a6e22e">Enabled</span>(<span style="color:#a6e22e">features</span>.<span style="color:#a6e22e">WatchList</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Use watch list feature</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Enable feature programmatically (for testing)</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">utilfeature</span>.<span style="color:#a6e22e">DefaultMutableFeatureGate</span>.<span style="color:#a6e22e">Set</span>(<span style="color:#e6db74">&#34;WatchList=true&#34;</span>)
+</span></span></code></pre></div><h2 id="best-practices">Best Practices</h2>
+<h3 id="1-use-fake-clients-for-testing">1. Use Fake Clients for Testing</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// ✅ Good: Use fake clientset for unit tests</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">TestController</span>(<span style="color:#a6e22e">t</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">testing</span>.<span style="color:#a6e22e">T</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">fakeClientset</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">fake</span>.<span style="color:#a6e22e">NewSimpleClientset</span>()
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">controller</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">NewController</span>(<span style="color:#a6e22e">fakeClientset</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Test controller logic</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// ❌ Bad: Using real clientset in unit tests</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">TestController</span>(<span style="color:#a6e22e">t</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">testing</span>.<span style="color:#a6e22e">T</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">config</span>, <span style="color:#a6e22e">_</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">InClusterConfig</span>()
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">clientset</span>, <span style="color:#a6e22e">_</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">kubernetes</span>.<span style="color:#a6e22e">NewForConfig</span>(<span style="color:#a6e22e">config</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">controller</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">NewController</span>(<span style="color:#a6e22e">clientset</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="2-record-events-for-important-actions">2. Record Events for Important Actions</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// ✅ Good: Record events for visibility</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">recorder</span>.<span style="color:#a6e22e">Event</span>(<span style="color:#a6e22e">pod</span>, <span style="color:#a6e22e">corev1</span>.<span style="color:#a6e22e">EventTypeNormal</span>, <span style="color:#e6db74">&#34;Created&#34;</span>, <span style="color:#e6db74">&#34;Successfully created pod&#34;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// ❌ Bad: Silent operations</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">createPod</span>(<span style="color:#a6e22e">pod</span>)
+</span></span></code></pre></div><h3 id="3-use-retry-for-conflict-errors">3. Use Retry for Conflict Errors</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// ✅ Good: Retry on conflicts</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">retry</span>.<span style="color:#a6e22e">RetryOnConflict</span>(<span style="color:#a6e22e">retry</span>.<span style="color:#a6e22e">DefaultRetry</span>, <span style="color:#66d9ef">func</span>() <span style="color:#66d9ef">error</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">obj</span>, <span style="color:#a6e22e">_</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">client</span>.<span style="color:#a6e22e">Get</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">name</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">GetOptions</span>{})
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">obj</span>.<span style="color:#a6e22e">Spec</span>.<span style="color:#a6e22e">Replicas</span> = <span style="color:#ae81ff">3</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">_</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">client</span>.<span style="color:#a6e22e">Update</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">obj</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">UpdateOptions</span>{})
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">err</span>
+</span></span><span style="display:flex;"><span>})
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// ❌ Bad: No retry on conflicts</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">obj</span>, <span style="color:#a6e22e">_</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">client</span>.<span style="color:#a6e22e">Get</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">name</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">GetOptions</span>{})
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">obj</span>.<span style="color:#a6e22e">Spec</span>.<span style="color:#a6e22e">Replicas</span> = <span style="color:#ae81ff">3</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">client</span>.<span style="color:#a6e22e">Update</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">obj</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">UpdateOptions</span>{})
+</span></span></code></pre></div><h3 id="4-use-context-for-cancellation">4. Use Context for Cancellation</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// ✅ Good: Use context with timeout</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">cancel</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">WithTimeout</span>(<span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">Background</span>(), <span style="color:#ae81ff">30</span><span style="color:#f92672">*</span><span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">defer</span> <span style="color:#a6e22e">cancel</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">exec</span>.<span style="color:#a6e22e">StreamWithContext</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">options</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// ❌ Bad: No timeout</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">exec</span>.<span style="color:#a6e22e">Stream</span>(<span style="color:#a6e22e">options</span>)
+</span></span></code></pre></div><h2 id="summary">Summary</h2>
+<p>The utility packages in <code>client-go</code> provide:</p>
+<ul>
+<li><strong>transport</strong>: HTTP transport configuration and customization</li>
+<li><strong>plugin</strong>: Authentication plugins for various providers</li>
+<li><strong>tools/record</strong>: Event recording for controllers</li>
+<li><strong>tools/remotecommand</strong>: Command execution and container attachment</li>
+<li><strong>tools/portforward</strong>: Port forwarding functionality</li>
+<li><strong>util</strong>: Various utility functions (retry, rate limiting, etc.)</li>
+<li><strong>testing</strong>: Fake clients and testing utilities</li>
+<li><strong>features</strong>: Client-side feature gates</li>
+</ul>
+<p>These utilities enable building robust, testable, and feature-rich Kubernetes applications.</p>
+
+</article>
+
+            </div>
+            
+            <footer class="content-footer">
+                <p>&copy; 2026 The Kubernetes Authors | <a href="https://www.apache.org/licenses/LICENSE-2.0">Apache License 2.0</a></p>
+            </footer>
+        </main>
+    </div>
+
+    <script src="/js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+graph TB
+    subgraph "Core Runtime"
+        Scheme[Scheme<br/>Type Registry]
+        Codec[Codec<br/>Serialization]
+        Converter[Converter<br/>Version Conversion]
+    end
+    
+    subgraph "API Metadata"
+        Meta[Meta<br/>Object Metadata]
+        RESTMapper[RESTMapper<br/>Resource Mapping]
+    end
+    
+    subgraph "Selection & Filtering"
+        Labels[Labels<br/>Label Selectors]
+        Fields[Fields<br/>Field Selectors]
+    end
+    
+    subgraph "Serialization Formats"
+        JSON[JSON Serializer]
+        YAML[YAML Serializer]
+        Protobuf[Protobuf Serializer]
+        CBOR[CBOR Serializer]
+    end
+    
+    subgraph "Watch & Events"
+        Watch[Watch Interface]
+        StreamWatcher[Stream Watcher]
+    end
+    
+    subgraph "Utilities"
+        Resource[Resource<br/>Quantity]
+        Wait[Wait<br/>Polling]
+        Sets[Sets<br/>Collections]
+        Validation[Validation]
+        Patch[Patch<br/>JSON/Strategic]
+    end
+    
+    Scheme --> Codec
+    Scheme --> Converter
+    Codec --> JSON
+    Codec --> YAML
+    Codec --> Protobuf
+    Codec --> CBOR
+    Meta --> RESTMapper
+    Watch --> StreamWatcher
+    
+    style Scheme fill:#e1f5ff
+    style Codec fill:#e1f5ff
+    style Converter fill:#e1f5ff
+    style Meta fill:#fff4e1
+    style Labels fill:#f0ffe1
+    style Fields fill:#f0ffe1

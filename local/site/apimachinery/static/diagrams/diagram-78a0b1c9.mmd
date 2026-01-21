@@ -1,0 +1,14 @@
+sequenceDiagram
+    participant Client
+    participant Codec
+    participant Scheme
+    participant Converter
+    participant Serializer
+    
+    Client->>Codec: Encode(object)
+    Codec->>Scheme: ObjectKinds(object)
+    Scheme-->>Codec: GVK
+    Codec->>Converter: ConvertToVersion(object, targetGV)
+    Converter-->>Codec: Converted Object
+    Codec->>Serializer: Encode(object, writer)
+    Serializer-->>Client: Serialized Data

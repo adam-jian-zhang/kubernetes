@@ -1,0 +1,23 @@
+baseURL = 'http://localhost:9003/'
+languageCode = 'en-us'
+title = 'k8s.io/apiserver Documentation'
+theme = 'apiserver-theme'
+
+[params]
+  description = 'Comprehensive documentation for the Kubernetes API server library'
+  author = 'Kubernetes Community'
+
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true
+  [markup.highlight]
+    style = 'monokai'
+    lineNos = false
+    lineNumbersInTable = false
+
+[menu]
+  [[menu.main]]
+    name = 'Home'
+    url = '/'
+    weight = 1

@@ -1,0 +1,18 @@
+sequenceDiagram
+    participant Client
+    participant RESTMapper
+    participant DefaultMapper
+    participant Cache
+    
+    Client->>RESTMapper: RESTMapping(GroupKind)
+    RESTMapper->>Cache: Check cache
+    alt Cache hit
+        Cache-->>RESTMapper: Cached mapping
+        RESTMapper-->>Client: RESTMapping
+    else Cache miss
+        RESTMapper->>DefaultMapper: Query mapping
+        DefaultMapper->>DefaultMapper: Lookup in tables
+        DefaultMapper-->>RESTMapper: Mapping result
+        RESTMapper->>Cache: Store result
+        RESTMapper-->>Client: RESTMapping
+    end

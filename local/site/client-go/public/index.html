@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en-us" data-theme="light">
+<head>
+	<meta name="generator" content="Hugo 0.154.5">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Comprehensive documentation for k8s.io/client-go - the official Kubernetes Go client library">
+    <title>client-go Documentation | client-go Documentation</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h1 class="sidebar-title">
+                    <i class="fas fa-cube"></i>
+                    <span class="sidebar-title-text">client-go</span>
+                </h1>
+                <button id="theme-toggle" class="icon-btn" title="Toggle theme">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+            
+            <nav class="sidebar-nav">
+                
+                
+                <a href="/" class="nav-link active">
+                    <span class="nav-text">Home</span>
+                </a>
+                
+                <a href="/00-overview/" class="nav-link ">
+                    <span class="nav-text">Overview</span>
+                </a>
+                
+                <a href="/01-core-packages/" class="nav-link ">
+                    <span class="nav-text">Core Packages</span>
+                </a>
+                
+                <a href="/02-configuration/" class="nav-link ">
+                    <span class="nav-text">Configuration</span>
+                </a>
+                
+                <a href="/03-controller-infrastructure/" class="nav-link ">
+                    <span class="nav-text">Controllers</span>
+                </a>
+                
+                <a href="/04-advanced-features/" class="nav-link ">
+                    <span class="nav-text">Advanced Features</span>
+                </a>
+                
+                <a href="/05-utilities/" class="nav-link ">
+                    <span class="nav-text">Utilities</span>
+                </a>
+                
+                <a href="/06-examples/" class="nav-link ">
+                    <span class="nav-text">Examples</span>
+                </a>
+                
+                <a href="/index-page/" class="nav-link ">
+                    <span class="nav-text">Index</span>
+                </a>
+                
+            </nav>
+            
+            <div class="sidebar-footer">
+                <a href="https://github.com/kubernetes/client-go" target="_blank" class="github-link">
+                    <i class="fab fa-github"></i>
+                    <span class="nav-text">GitHub</span>
+                </a>
+            </div>
+        </aside>
+
+        
+        <div id="resize-handle" class="resize-handle"></div>
+
+        
+        <main class="main-content">
+            <div class="content-header">
+                <button id="menu-toggle" class="icon-btn" title="Toggle menu">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1 class="page-title">client-go Documentation</h1>
+            </div>
+            
+            <div class="content-body">
+                
+<article class="article home-page">
+    <h1 id="client-go-documentation">client-go Documentation</h1>
+<p>Comprehensive documentation for the Kubernetes Go client library (<code>k8s.io/client-go</code>).</p>
+<h2 id="about-client-go">About client-go</h2>
+<p><code>client-go</code> is the official Go client library for interacting with Kubernetes clusters. It provides a comprehensive set of tools, clients, and utilities for building applications, controllers, and operators that communicate with the Kubernetes API server.</p>
+<p><strong>Project Location</strong>: <code>staging/src/k8s.io/client-go</code></p>
+<p><strong>Official Repository</strong>: <a href="https://github.com/kubernetes/client-go">https://github.com/kubernetes/client-go</a></p>
+<h2 id="documentation-structure">Documentation Structure</h2>
+<p>This documentation is organized into the following sections:</p>
+<h3 id="00-overview"><a href="00-overview/">00. Overview</a></h3>
+<ul>
+<li>Project structure and architecture</li>
+<li>Key components and their relationships</li>
+<li>Versioning and compatibility</li>
+<li>Common use cases</li>
+<li>High-level architecture diagrams</li>
+</ul>
+<p><strong>Topics Covered</strong>:</p>
+<ul>
+<li>Client types (Clientset, Dynamic, REST)</li>
+<li>Configuration methods</li>
+<li>Controller infrastructure overview</li>
+<li>Event-driven patterns</li>
+<li>Performance considerations</li>
+</ul>
+<h3 id="01-core-packages"><a href="01-core-packages/">01. Core Packages</a></h3>
+<ul>
+<li>REST client foundation</li>
+<li>Typed Kubernetes clientset</li>
+<li>Dynamic client for CRDs</li>
+<li>Discovery client</li>
+<li>Metadata client</li>
+<li>Scale subresource</li>
+</ul>
+<p><strong>Topics Covered</strong>:</p>
+<ul>
+<li><code>rest</code> package: HTTP client and configuration</li>
+<li><code>kubernetes</code> package: Type-safe clients</li>
+<li><code>dynamic</code> package: Unstructured operations</li>
+<li><code>discovery</code> package: API resource discovery</li>
+<li><code>metadata</code> package: Metadata-only operations</li>
+<li>Client comparison and selection guide</li>
+</ul>
+<h3 id="02-configuration"><a href="02-configuration/">02. Configuration</a></h3>
+<ul>
+<li>Client configuration methods</li>
+<li>Authentication mechanisms</li>
+<li>Rate limiting and timeouts</li>
+<li>Transport customization</li>
+<li>Environment-specific patterns</li>
+</ul>
+<p><strong>Topics Covered</strong>:</p>
+<ul>
+<li>In-cluster configuration</li>
+<li>Kubeconfig file loading</li>
+<li>Manual configuration</li>
+<li>Authentication methods (tokens, certificates, exec plugins)</li>
+<li>Rate limiting configuration</li>
+<li>TLS and security settings</li>
+<li>Configuration best practices</li>
+</ul>
+<h3 id="03-controller-infrastructure"><a href="03-controller-infrastructure/">03. Controller Infrastructure</a></h3>
+<ul>
+<li>Informer pattern and implementation</li>
+<li>Caching mechanisms</li>
+<li>Work queues</li>
+<li>Leader election</li>
+<li>Controller patterns</li>
+</ul>
+<p><strong>Topics Covered</strong>:</p>
+<ul>
+<li><code>tools/cache</code> package: Reflector, DeltaFIFO, Indexer, SharedInformer</li>
+<li><code>util/workqueue</code> package: Rate-limited queues</li>
+<li><code>tools/leaderelection</code> package: High availability</li>
+<li>Complete controller implementation</li>
+<li>Best practices for building controllers</li>
+</ul>
+<h3 id="04-advanced-features"><a href="04-advanced-features/">04. Advanced Features</a></h3>
+<ul>
+<li>Server-Side Apply</li>
+<li>Apply configurations</li>
+<li>Metadata operations</li>
+<li>Pagination</li>
+<li>Watch optimizations</li>
+</ul>
+<p><strong>Topics Covered</strong>:</p>
+<ul>
+<li>Server-Side Apply concepts and usage</li>
+<li><code>applyconfigurations</code> package</li>
+<li>Field ownership and conflict resolution</li>
+<li>Extract/Modify/Apply pattern</li>
+<li>Metadata client for optimized operations</li>
+<li>Paging for large lists</li>
+<li>Watch bookmarks and streaming</li>
+<li>Field and label selectors</li>
+</ul>
+<h3 id="05-utilities"><a href="05-utilities/">05. Utilities</a></h3>
+<ul>
+<li>Transport and authentication plugins</li>
+<li>Event recording</li>
+<li>Remote command execution</li>
+<li>Port forwarding</li>
+<li>Testing utilities</li>
+</ul>
+<p><strong>Topics Covered</strong>:</p>
+<ul>
+<li><code>transport</code> package: HTTP transport configuration</li>
+<li><code>plugin</code> package: Authentication plugins</li>
+<li><code>tools/record</code> and <code>tools/events</code>: Event recording</li>
+<li><code>tools/remotecommand</code>: Exec and attach</li>
+<li><code>tools/portforward</code>: Port forwarding</li>
+<li><code>util</code> package: Retry, rate limiting, helpers</li>
+<li><code>testing</code> package: Fake clients and test utilities</li>
+</ul>
+<h3 id="06-examples"><a href="06-examples/">06. Examples</a></h3>
+<ul>
+<li>Practical code examples</li>
+<li>Common patterns</li>
+<li>Complete implementations</li>
+<li>Best practices in action</li>
+</ul>
+<p><strong>Topics Covered</strong>:</p>
+<ul>
+<li>Basic CRUD operations</li>
+<li>Watching resources</li>
+<li>Building controllers</li>
+<li>Working with CRDs</li>
+<li>Server-Side Apply examples</li>
+<li>Leader election</li>
+<li>Multi-resource management</li>
+<li>Finalizer patterns</li>
+</ul>
+<h2 id="quick-start">Quick Start</h2>
+<h3 id="installation">Installation</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go get k8s.io/client-go@latest
+</span></span></code></pre></div><h3 id="basic-usage">Basic Usage</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">package</span> <span style="color:#a6e22e">main</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> (
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;context&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;fmt&#34;</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">metav1</span> <span style="color:#e6db74">&#34;k8s.io/apimachinery/pkg/apis/meta/v1&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;k8s.io/client-go/kubernetes&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;k8s.io/client-go/rest&#34;</span>
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Create config</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">config</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">InClusterConfig</span>()
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>        panic(<span style="color:#a6e22e">err</span>)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Create clientset</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">clientset</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">kubernetes</span>.<span style="color:#a6e22e">NewForConfig</span>(<span style="color:#a6e22e">config</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>        panic(<span style="color:#a6e22e">err</span>)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// List pods</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">pods</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">CoreV1</span>().<span style="color:#a6e22e">Pods</span>(<span style="color:#e6db74">&#34;default&#34;</span>).<span style="color:#a6e22e">List</span>(
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">Background</span>(),
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">ListOptions</span>{},
+</span></span><span style="display:flex;"><span>    )
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>        panic(<span style="color:#a6e22e">err</span>)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;Found %d pods\n&#34;</span>, len(<span style="color:#a6e22e">pods</span>.<span style="color:#a6e22e">Items</span>))
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="architecture-overview">Architecture Overview</h2>
+<div class="mermaid-diagram"><img src="/images/diagram_8ff26eefb814d476.svg" alt="Diagram" /></div>
+<h2 id="key-concepts">Key Concepts</h2>
+<h3 id="client-types">Client Types</h3>
+<table>
+  <thead>
+      <tr>
+          <th>Client Type</th>
+          <th>Use Case</th>
+          <th>Type Safety</th>
+          <th>CRD Support</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>kubernetes.Clientset</strong></td>
+          <td>Built-in resources</td>
+          <td>✅ Strong</td>
+          <td>❌ No</td>
+      </tr>
+      <tr>
+          <td><strong>dynamic.DynamicClient</strong></td>
+          <td>Any resource</td>
+          <td>❌ Weak</td>
+          <td>✅ Yes</td>
+      </tr>
+      <tr>
+          <td><strong>metadata.Client</strong></td>
+          <td>Metadata only</td>
+          <td>✅ Metadata</td>
+          <td>✅ Yes</td>
+      </tr>
+      <tr>
+          <td><strong>rest.RESTClient</strong></td>
+          <td>Custom needs</td>
+          <td>❌ None</td>
+          <td>✅ Yes</td>
+      </tr>
+  </tbody>
+</table>
+<h3 id="controller-pattern">Controller Pattern</h3>
+<p>The controller pattern is central to Kubernetes:</p>
+<ol>
+<li><strong>Watch</strong> resources via Informers</li>
+<li><strong>Cache</strong> resources locally</li>
+<li><strong>Enqueue</strong> keys to WorkQueue</li>
+<li><strong>Process</strong> items with reconciliation logic</li>
+<li><strong>Update</strong> resources via API server</li>
+</ol>
+<h3 id="server-side-apply">Server-Side Apply</h3>
+<p>Declarative resource management with field ownership:</p>
+<ul>
+<li><strong>Field Managers</strong>: Track who owns which fields</li>
+<li><strong>Conflict Detection</strong>: Automatic conflict detection</li>
+<li><strong>Partial Updates</strong>: Only specify fields you care about</li>
+<li><strong>Multi-Actor</strong>: Multiple controllers can safely co-manage objects</li>
+</ul>
+<h2 id="version-compatibility">Version Compatibility</h2>
+<table>
+  <thead>
+      <tr>
+          <th>client-go Version</th>
+          <th>Kubernetes Version</th>
+          <th>Status</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>v0.31.0</td>
+          <td>v1.31.x</td>
+          <td>✅ Supported</td>
+      </tr>
+      <tr>
+          <td>v0.32.0</td>
+          <td>v1.32.x</td>
+          <td>✅ Supported</td>
+      </tr>
+      <tr>
+          <td>v0.33.0</td>
+          <td>v1.33.x</td>
+          <td>✅ Supported</td>
+      </tr>
+      <tr>
+          <td>v0.34.0</td>
+          <td>v1.34.x</td>
+          <td>✅ Supported</td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Note</strong>: <code>client-go v0.X.Y</code> corresponds to Kubernetes <code>v1.X.Y</code></p>
+<p><strong>Compatibility</strong>:</p>
+<ul>
+<li>✅ Older clients work with newer servers (backward compatible)</li>
+<li>⚠️ Newer clients may not work with older servers (forward compatibility not guaranteed)</li>
+</ul>
+<h2 id="common-patterns">Common Patterns</h2>
+<h3 id="1-in-cluster-configuration">1. In-Cluster Configuration</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">config</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">InClusterConfig</span>()
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">clientset</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">kubernetes</span>.<span style="color:#a6e22e">NewForConfig</span>(<span style="color:#a6e22e">config</span>)
+</span></span></code></pre></div><h3 id="2-out-of-cluster-configuration">2. Out-of-Cluster Configuration</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">config</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientcmd</span>.<span style="color:#a6e22e">BuildConfigFromFlags</span>(<span style="color:#e6db74">&#34;&#34;</span>, <span style="color:#a6e22e">kubeconfig</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">clientset</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">kubernetes</span>.<span style="color:#a6e22e">NewForConfig</span>(<span style="color:#a6e22e">config</span>)
+</span></span></code></pre></div><h3 id="3-building-a-controller">3. Building a Controller</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Create informer</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">informerFactory</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">informers</span>.<span style="color:#a6e22e">NewSharedInformerFactory</span>(<span style="color:#a6e22e">clientset</span>, <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Minute</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">podInformer</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">informerFactory</span>.<span style="color:#a6e22e">Core</span>().<span style="color:#a6e22e">V1</span>().<span style="color:#a6e22e">Pods</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Add event handler</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">podInformer</span>.<span style="color:#a6e22e">Informer</span>().<span style="color:#a6e22e">AddEventHandler</span>(<span style="color:#a6e22e">cache</span>.<span style="color:#a6e22e">ResourceEventHandlerFuncs</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">AddFunc</span>:    <span style="color:#a6e22e">handleAdd</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">UpdateFunc</span>: <span style="color:#a6e22e">handleUpdate</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">DeleteFunc</span>: <span style="color:#a6e22e">handleDelete</span>,
+</span></span><span style="display:flex;"><span>})
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Start informer</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">informerFactory</span>.<span style="color:#a6e22e">Start</span>(<span style="color:#a6e22e">stopCh</span>)
+</span></span></code></pre></div><h3 id="4-server-side-apply">4. Server-Side Apply</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">deployment</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">appsv1ac</span>.<span style="color:#a6e22e">Deployment</span>(<span style="color:#e6db74">&#34;my-app&#34;</span>, <span style="color:#e6db74">&#34;default&#34;</span>).
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">WithSpec</span>(<span style="color:#a6e22e">appsv1ac</span>.<span style="color:#a6e22e">DeploymentSpec</span>().<span style="color:#a6e22e">WithReplicas</span>(<span style="color:#ae81ff">3</span>))
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">result</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">AppsV1</span>().<span style="color:#a6e22e">Deployments</span>(<span style="color:#e6db74">&#34;default&#34;</span>).
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Apply</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">deployment</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">ApplyOptions</span>{
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">FieldManager</span>: <span style="color:#e6db74">&#34;my-controller&#34;</span>,
+</span></span><span style="display:flex;"><span>    })
+</span></span></code></pre></div><h2 id="best-practices">Best Practices</h2>
+<h3 id="-do">✅ Do</h3>
+<ul>
+<li>Use informers instead of direct watches</li>
+<li>Configure appropriate rate limits</li>
+<li>Implement proper error handling</li>
+<li>Use context for cancellation</li>
+<li>Reuse clients and configurations</li>
+<li>Use Server-Side Apply for controllers</li>
+<li>Implement leader election for HA</li>
+<li>Use work queues for retry logic</li>
+</ul>
+<h3 id="-dont">❌ Don&rsquo;t</h3>
+<ul>
+<li>Create clients for every request</li>
+<li>Disable rate limiting without reason</li>
+<li>Ignore errors</li>
+<li>Use infinite timeouts</li>
+<li>Poll the API server</li>
+<li>Use get-modify-update pattern (use Server-Side Apply)</li>
+<li>Run controllers without leader election in HA setups</li>
+<li>Block informer event handlers</li>
+</ul>
+<h2 id="resources">Resources</h2>
+<h3 id="official-documentation">Official Documentation</h3>
+<ul>
+<li><strong>client-go Repository</strong>: <a href="https://github.com/kubernetes/client-go">https://github.com/kubernetes/client-go</a></li>
+<li><strong>API Documentation</strong>: <a href="https://pkg.go.dev/k8s.io/client-go">https://pkg.go.dev/k8s.io/client-go</a></li>
+<li><strong>Kubernetes Documentation</strong>: <a href="https://kubernetes.io/docs/reference/using-api/client-libraries/">https://kubernetes.io/docs/reference/using-api/client-libraries/</a></li>
+</ul>
+<h3 id="examples-and-samples">Examples and Samples</h3>
+<ul>
+<li><strong>Official Examples</strong>: <code>staging/src/k8s.io/client-go/examples/</code></li>
+<li><strong>Sample Controller</strong>: <a href="https://github.com/kubernetes/sample-controller">https://github.com/kubernetes/sample-controller</a></li>
+<li><strong>Community Examples</strong>: <a href="https://github.com/kubernetes/client-go/tree/master/examples">https://github.com/kubernetes/client-go/tree/master/examples</a></li>
+</ul>
+<h3 id="related-projects">Related Projects</h3>
+<ul>
+<li><strong>controller-runtime</strong>: Higher-level controller framework</li>
+<li><strong>kubebuilder</strong>: SDK for building Kubernetes APIs</li>
+<li><strong>operator-sdk</strong>: Framework for building Kubernetes operators</li>
+</ul>
+<h2 id="contributing">Contributing</h2>
+<p>For contributions to client-go:</p>
+<ol>
+<li><strong>Main Repository</strong>: Contributions should be made to the main Kubernetes repository</li>
+<li><strong>Staging Area</strong>: client-go is in the staging area at <code>staging/src/k8s.io/client-go</code></li>
+<li><strong>Issues</strong>: Report issues in the main Kubernetes repository</li>
+<li><strong>Pull Requests</strong>: Submit PRs to the main Kubernetes repository</li>
+</ol>
+<p>See <a href="../../staging/src/k8s.io/client-go/CONTRIBUTING/">CONTRIBUTING.md</a> for details.</p>
+<h2 id="license">License</h2>
+<p>client-go is licensed under the Apache License 2.0. See <a href="../../staging/src/k8s.io/client-go/LICENSE">LICENSE</a> for details.</p>
+<h2 id="support">Support</h2>
+<ul>
+<li><strong>Kubernetes Slack</strong>: #client-go channel</li>
+<li><strong>Stack Overflow</strong>: Tag questions with <code>kubernetes</code> and <code>client-go</code></li>
+<li><strong>GitHub Issues</strong>: <a href="https://github.com/kubernetes/kubernetes/issues">https://github.com/kubernetes/kubernetes/issues</a></li>
+</ul>
+<hr>
+<p><strong>Documentation Version</strong>: Generated from Kubernetes source tree
+<strong>Last Updated</strong>: 2026-01-15
+<strong>Source</strong>: <code>staging/src/k8s.io/client-go</code></p>
+
+</article>
+
+            </div>
+            
+            <footer class="content-footer">
+                <p>&copy; 2026 The Kubernetes Authors | <a href="https://www.apache.org/licenses/LICENSE-2.0">Apache License 2.0</a></p>
+            </footer>
+        </main>
+    </div>
+
+    <script src="/js/main.js"></script>
+</body>
+</html>

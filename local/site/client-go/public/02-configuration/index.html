@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en-us" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Comprehensive documentation for k8s.io/client-go - the official Kubernetes Go client library">
+    <title>Configuration | client-go Documentation</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h1 class="sidebar-title">
+                    <i class="fas fa-cube"></i>
+                    <span class="sidebar-title-text">client-go</span>
+                </h1>
+                <button id="theme-toggle" class="icon-btn" title="Toggle theme">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+            
+            <nav class="sidebar-nav">
+                
+                
+                <a href="/" class="nav-link ">
+                    <span class="nav-text">Home</span>
+                </a>
+                
+                <a href="/00-overview/" class="nav-link ">
+                    <span class="nav-text">Overview</span>
+                </a>
+                
+                <a href="/01-core-packages/" class="nav-link ">
+                    <span class="nav-text">Core Packages</span>
+                </a>
+                
+                <a href="/02-configuration/" class="nav-link active">
+                    <span class="nav-text">Configuration</span>
+                </a>
+                
+                <a href="/03-controller-infrastructure/" class="nav-link ">
+                    <span class="nav-text">Controllers</span>
+                </a>
+                
+                <a href="/04-advanced-features/" class="nav-link ">
+                    <span class="nav-text">Advanced Features</span>
+                </a>
+                
+                <a href="/05-utilities/" class="nav-link ">
+                    <span class="nav-text">Utilities</span>
+                </a>
+                
+                <a href="/06-examples/" class="nav-link ">
+                    <span class="nav-text">Examples</span>
+                </a>
+                
+                <a href="/index-page/" class="nav-link ">
+                    <span class="nav-text">Index</span>
+                </a>
+                
+            </nav>
+            
+            <div class="sidebar-footer">
+                <a href="https://github.com/kubernetes/client-go" target="_blank" class="github-link">
+                    <i class="fab fa-github"></i>
+                    <span class="nav-text">GitHub</span>
+                </a>
+            </div>
+        </aside>
+
+        
+        <div id="resize-handle" class="resize-handle"></div>
+
+        
+        <main class="main-content">
+            <div class="content-header">
+                <button id="menu-toggle" class="icon-btn" title="Toggle menu">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1 class="page-title">Configuration</h1>
+            </div>
+            
+            <div class="content-body">
+                
+<article class="article">
+    <h1 id="configuration">Configuration</h1>
+<p>This document covers how to configure <code>client-go</code> clients to connect to Kubernetes clusters.</p>
+<h2 id="configuration-overview">Configuration Overview</h2>
+<div class="mermaid-diagram"><img src="/images/diagram_c7bd910305a92c9e.svg" alt="Diagram" /></div>
+<h2 id="restconfig-structure">rest.Config Structure</h2>
+<p>The <code>rest.Config</code> struct is the central configuration object:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Config</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Core connection settings</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Host</span>    <span style="color:#66d9ef">string</span>  <span style="color:#75715e">// API server URL (e.g., &#34;https://kubernetes.default.svc&#34;)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">APIPath</span> <span style="color:#66d9ef">string</span>  <span style="color:#75715e">// API path prefix (e.g., &#34;/api&#34; or &#34;/apis&#34;)</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Content negotiation</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">ContentConfig</span> <span style="color:#a6e22e">ClientContentConfig</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Authentication - multiple methods supported</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Username</span>        <span style="color:#66d9ef">string</span>  <span style="color:#75715e">// Basic auth username</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Password</span>        <span style="color:#66d9ef">string</span>  <span style="color:#75715e">// Basic auth password</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">BearerToken</span>     <span style="color:#66d9ef">string</span>  <span style="color:#75715e">// Bearer token for authentication</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">BearerTokenFile</span> <span style="color:#66d9ef">string</span>  <span style="color:#75715e">// Path to file containing bearer token</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Impersonate</span>     <span style="color:#a6e22e">ImpersonationConfig</span>  <span style="color:#75715e">// Impersonation settings</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Authentication provider (exec, oidc, etc.)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">AuthProvider</span>    <span style="color:#f92672">*</span><span style="color:#a6e22e">clientcmdapi</span>.<span style="color:#a6e22e">AuthProviderConfig</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">AuthConfigPersister</span> <span style="color:#a6e22e">AuthProviderConfigPersister</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">ExecProvider</span>    <span style="color:#f92672">*</span><span style="color:#a6e22e">clientcmdapi</span>.<span style="color:#a6e22e">ExecConfig</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// TLS configuration</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">TLSClientConfig</span> <span style="color:#a6e22e">TLSClientConfig</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Client-side rate limiting</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">QPS</span>   <span style="color:#66d9ef">float32</span>  <span style="color:#75715e">// Maximum queries per second (default: 5)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Burst</span> <span style="color:#66d9ef">int</span>      <span style="color:#75715e">// Maximum burst for rate limiter (default: 10)</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Request timeout</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Timeout</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Duration</span>  <span style="color:#75715e">// Timeout for requests (0 = no timeout)</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Dial and TLS handshake timeout</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Dial</span> <span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">ctx</span> <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">Context</span>, <span style="color:#a6e22e">network</span>, <span style="color:#a6e22e">address</span> <span style="color:#66d9ef">string</span>) (<span style="color:#a6e22e">net</span>.<span style="color:#a6e22e">Conn</span>, <span style="color:#66d9ef">error</span>)
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Proxy function</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Proxy</span> <span style="color:#66d9ef">func</span>(<span style="color:#f92672">*</span><span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">Request</span>) (<span style="color:#f92672">*</span><span style="color:#a6e22e">url</span>.<span style="color:#a6e22e">URL</span>, <span style="color:#66d9ef">error</span>)
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// User agent</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">UserAgent</span> <span style="color:#66d9ef">string</span>  <span style="color:#75715e">// User agent string for requests</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Disable compression</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">DisableCompression</span> <span style="color:#66d9ef">bool</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Transport customization</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Transport</span>     <span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">RoundTripper</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">WrapTransport</span> <span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">rt</span> <span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">RoundTripper</span>) <span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">RoundTripper</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Warning handler</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">WarningHandler</span> <span style="color:#a6e22e">WarningHandler</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Rate limiter</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">RateLimiter</span> <span style="color:#a6e22e">flowcontrol</span>.<span style="color:#a6e22e">RateLimiter</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="tls-configuration">TLS Configuration</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">TLSClientConfig</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Server should be accessed without verifying the TLS certificate</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Insecure</span> <span style="color:#66d9ef">bool</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// ServerName is passed to the server for SNI</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">ServerName</span> <span style="color:#66d9ef">string</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Server certificate authority</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">CAFile</span> <span style="color:#66d9ef">string</span>  <span style="color:#75715e">// Path to CA cert file</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">CAData</span> []<span style="color:#66d9ef">byte</span>  <span style="color:#75715e">// CA cert data</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Client certificate for mutual TLS</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">CertFile</span> <span style="color:#66d9ef">string</span>  <span style="color:#75715e">// Path to client cert file</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">CertData</span> []<span style="color:#66d9ef">byte</span>  <span style="color:#75715e">// Client cert data</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">KeyFile</span>  <span style="color:#66d9ef">string</span>  <span style="color:#75715e">// Path to client key file</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">KeyData</span>  []<span style="color:#66d9ef">byte</span>  <span style="color:#75715e">// Client key data</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// NextProtos is a list of supported application level protocols</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">NextProtos</span> []<span style="color:#66d9ef">string</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="configuration-methods">Configuration Methods</h2>
+<h3 id="1-in-cluster-configuration">1. In-Cluster Configuration</h3>
+<p>For applications running inside Kubernetes pods:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Automatic configuration from pod&#39;s service account</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">config</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">InClusterConfig</span>()
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>    panic(<span style="color:#a6e22e">err</span>.<span style="color:#a6e22e">Error</span>())
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">clientset</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">kubernetes</span>.<span style="color:#a6e22e">NewForConfig</span>(<span style="color:#a6e22e">config</span>)
+</span></span></code></pre></div><p><strong>How it works</strong>:</p>
+<div class="mermaid-diagram"><img src="/images/diagram_1962afceefa56958.svg" alt="Diagram" /></div>
+<p><strong>What InClusterConfig does</strong>:</p>
+<ol>
+<li>Reads service account token from <code>/var/run/secrets/kubernetes.io/serviceaccount/token</code></li>
+<li>Reads CA certificate from <code>/var/run/secrets/kubernetes.io/serviceaccount/ca.crt</code></li>
+<li>Reads namespace from <code>/var/run/secrets/kubernetes.io/serviceaccount/namespace</code></li>
+<li>Sets host to <code>https://kubernetes.default.svc</code></li>
+<li>Configures TLS with the CA certificate</li>
+</ol>
+<h3 id="2-kubeconfig-file-configuration">2. Kubeconfig File Configuration</h3>
+<p>For applications running outside the cluster:</p>
+<h4 id="basic-usage">Basic Usage</h4>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Use default kubeconfig location (~/.kube/config)</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">config</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientcmd</span>.<span style="color:#a6e22e">BuildConfigFromFlags</span>(<span style="color:#e6db74">&#34;&#34;</span>, <span style="color:#e6db74">&#34;&#34;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>    panic(<span style="color:#a6e22e">err</span>.<span style="color:#a6e22e">Error</span>())
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">clientset</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">kubernetes</span>.<span style="color:#a6e22e">NewForConfig</span>(<span style="color:#a6e22e">config</span>)
+</span></span></code></pre></div><h4 id="custom-kubeconfig-path">Custom Kubeconfig Path</h4>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Specify custom kubeconfig path</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">kubeconfigPath</span> <span style="color:#f92672">:=</span> <span style="color:#e6db74">&#34;/path/to/kubeconfig&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">config</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientcmd</span>.<span style="color:#a6e22e">BuildConfigFromFlags</span>(<span style="color:#e6db74">&#34;&#34;</span>, <span style="color:#a6e22e">kubeconfigPath</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>    panic(<span style="color:#a6e22e">err</span>.<span style="color:#a6e22e">Error</span>())
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h4 id="using-environment-variable">Using Environment Variable</h4>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Use KUBECONFIG environment variable</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">kubeconfig</span> <span style="color:#66d9ef">string</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> <span style="color:#a6e22e">envKubeconfig</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">os</span>.<span style="color:#a6e22e">Getenv</span>(<span style="color:#e6db74">&#34;KUBECONFIG&#34;</span>); <span style="color:#a6e22e">envKubeconfig</span> <span style="color:#f92672">!=</span> <span style="color:#e6db74">&#34;&#34;</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">kubeconfig</span> = <span style="color:#a6e22e">envKubeconfig</span>
+</span></span><span style="display:flex;"><span>} <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">kubeconfig</span> = <span style="color:#a6e22e">filepath</span>.<span style="color:#a6e22e">Join</span>(<span style="color:#a6e22e">os</span>.<span style="color:#a6e22e">Getenv</span>(<span style="color:#e6db74">&#34;HOME&#34;</span>), <span style="color:#e6db74">&#34;.kube&#34;</span>, <span style="color:#e6db74">&#34;config&#34;</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">config</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientcmd</span>.<span style="color:#a6e22e">BuildConfigFromFlags</span>(<span style="color:#e6db74">&#34;&#34;</span>, <span style="color:#a6e22e">kubeconfig</span>)
+</span></span></code></pre></div><h3 id="3-advanced-kubeconfig-loading">3. Advanced Kubeconfig Loading</h3>
+<h4 id="loading-rules">Loading Rules</h4>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Create loading rules</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">loadingRules</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientcmd</span>.<span style="color:#a6e22e">NewDefaultClientConfigLoadingRules</span>()
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">loadingRules</span>.<span style="color:#a6e22e">ExplicitPath</span> = <span style="color:#e6db74">&#34;/path/to/kubeconfig&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Create config overrides</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">configOverrides</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">clientcmd</span>.<span style="color:#a6e22e">ConfigOverrides</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">CurrentContext</span>: <span style="color:#e6db74">&#34;my-context&#34;</span>,
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Build config</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">kubeConfig</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientcmd</span>.<span style="color:#a6e22e">NewNonInteractiveDeferredLoadingClientConfig</span>(
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">loadingRules</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">configOverrides</span>,
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">config</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">kubeConfig</span>.<span style="color:#a6e22e">ClientConfig</span>()
+</span></span></code></pre></div><h4 id="context-selection">Context Selection</h4>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// List available contexts</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">rawConfig</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">kubeConfig</span>.<span style="color:#a6e22e">RawConfig</span>()
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">for</span> <span style="color:#a6e22e">name</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">rawConfig</span>.<span style="color:#a6e22e">Contexts</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;Context: %s\n&#34;</span>, <span style="color:#a6e22e">name</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Use specific context</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">configOverrides</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">clientcmd</span>.<span style="color:#a6e22e">ConfigOverrides</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">CurrentContext</span>: <span style="color:#e6db74">&#34;production-cluster&#34;</span>,
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h4 id="namespace-override">Namespace Override</h4>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Override namespace</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">configOverrides</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">clientcmd</span>.<span style="color:#a6e22e">ConfigOverrides</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Context</span>: <span style="color:#a6e22e">clientcmdapi</span>.<span style="color:#a6e22e">Context</span>{
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Namespace</span>: <span style="color:#e6db74">&#34;my-namespace&#34;</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="4-manual-configuration">4. Manual Configuration</h3>
+<p>For complete control over configuration:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">config</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">Config</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Host</span>: <span style="color:#e6db74">&#34;https://my-k8s-cluster.example.com:6443&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">TLSClientConfig</span>: <span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">TLSClientConfig</span>{
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">CAFile</span>:   <span style="color:#e6db74">&#34;/path/to/ca.crt&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">CertFile</span>: <span style="color:#e6db74">&#34;/path/to/client.crt&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">KeyFile</span>:  <span style="color:#e6db74">&#34;/path/to/client.key&#34;</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">QPS</span>:   <span style="color:#ae81ff">50</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Burst</span>: <span style="color:#ae81ff">100</span>,
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">clientset</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">kubernetes</span>.<span style="color:#a6e22e">NewForConfig</span>(<span style="color:#a6e22e">config</span>)
+</span></span></code></pre></div><h2 id="authentication-methods">Authentication Methods</h2>
+<h3 id="1-bearer-token">1. Bearer Token</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">config</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">Config</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Host</span>:        <span style="color:#e6db74">&#34;https://kubernetes.example.com&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">BearerToken</span>: <span style="color:#e6db74">&#34;eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">TLSClientConfig</span>: <span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">TLSClientConfig</span>{
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">CAFile</span>: <span style="color:#e6db74">&#34;/path/to/ca.crt&#34;</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="2-bearer-token-from-file">2. Bearer Token from File</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">config</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">Config</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Host</span>:            <span style="color:#e6db74">&#34;https://kubernetes.example.com&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">BearerTokenFile</span>: <span style="color:#e6db74">&#34;/var/run/secrets/kubernetes.io/serviceaccount/token&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">TLSClientConfig</span>: <span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">TLSClientConfig</span>{
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">CAFile</span>: <span style="color:#e6db74">&#34;/path/to/ca.crt&#34;</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="3-basic-authentication">3. Basic Authentication</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">config</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">Config</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Host</span>:     <span style="color:#e6db74">&#34;https://kubernetes.example.com&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Username</span>: <span style="color:#e6db74">&#34;admin&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Password</span>: <span style="color:#e6db74">&#34;password&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">TLSClientConfig</span>: <span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">TLSClientConfig</span>{
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">CAFile</span>: <span style="color:#e6db74">&#34;/path/to/ca.crt&#34;</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="4-client-certificate-mutual-tls">4. Client Certificate (Mutual TLS)</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">config</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">Config</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Host</span>: <span style="color:#e6db74">&#34;https://kubernetes.example.com&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">TLSClientConfig</span>: <span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">TLSClientConfig</span>{
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">CAFile</span>:   <span style="color:#e6db74">&#34;/path/to/ca.crt&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">CertFile</span>: <span style="color:#e6db74">&#34;/path/to/client.crt&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">KeyFile</span>:  <span style="color:#e6db74">&#34;/path/to/client.key&#34;</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="5-exec-plugin-external-authentication">5. Exec Plugin (External Authentication)</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">config</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">Config</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Host</span>: <span style="color:#e6db74">&#34;https://kubernetes.example.com&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">ExecProvider</span>: <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">clientcmdapi</span>.<span style="color:#a6e22e">ExecConfig</span>{
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">APIVersion</span>: <span style="color:#e6db74">&#34;client.authentication.k8s.io/v1&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Command</span>:    <span style="color:#e6db74">&#34;aws&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Args</span>:       []<span style="color:#66d9ef">string</span>{<span style="color:#e6db74">&#34;eks&#34;</span>, <span style="color:#e6db74">&#34;get-token&#34;</span>, <span style="color:#e6db74">&#34;--cluster-name&#34;</span>, <span style="color:#e6db74">&#34;my-cluster&#34;</span>},
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">TLSClientConfig</span>: <span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">TLSClientConfig</span>{
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">CAFile</span>: <span style="color:#e6db74">&#34;/path/to/ca.crt&#34;</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="6-oidc-authentication">6. OIDC Authentication</h3>
+<p>Configured via kubeconfig:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">users</span>:
+</span></span><span style="display:flex;"><span>- <span style="color:#f92672">name</span>: <span style="color:#ae81ff">oidc-user</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">user</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">auth-provider</span>:
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">name</span>: <span style="color:#ae81ff">oidc</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">config</span>:
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">client-id</span>: <span style="color:#ae81ff">kubernetes</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">client-secret</span>: <span style="color:#ae81ff">secret</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">id-token</span>: <span style="color:#ae81ff">eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">idp-issuer-url</span>: <span style="color:#ae81ff">https://accounts.google.com</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">refresh-token</span>: <span style="color:#ae81ff">refresh-token-value</span>
+</span></span></code></pre></div><h2 id="rate-limiting-configuration">Rate Limiting Configuration</h2>
+<h3 id="client-side-rate-limiting">Client-Side Rate Limiting</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">config</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">Config</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Host</span>:  <span style="color:#e6db74">&#34;https://kubernetes.example.com&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">QPS</span>:   <span style="color:#ae81ff">50.0</span>,  <span style="color:#75715e">// 50 queries per second</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Burst</span>: <span style="color:#ae81ff">100</span>,   <span style="color:#75715e">// Allow bursts up to 100 requests</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><strong>Rate Limiting Behavior</strong>:</p>
+<div class="mermaid-diagram"><img src="/images/diagram_bb667aa1acb73ae6.svg" alt="Diagram" /></div>
+<h3 id="custom-rate-limiter">Custom Rate Limiter</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Create custom rate limiter</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">rateLimiter</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">flowcontrol</span>.<span style="color:#a6e22e">NewTokenBucketRateLimiter</span>(
+</span></span><span style="display:flex;"><span>    <span style="color:#ae81ff">100.0</span>,  <span style="color:#75715e">// QPS</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#ae81ff">200</span>,    <span style="color:#75715e">// Burst</span>
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">config</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">Config</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Host</span>:        <span style="color:#e6db74">&#34;https://kubernetes.example.com&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">RateLimiter</span>: <span style="color:#a6e22e">rateLimiter</span>,
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="disable-rate-limiting">Disable Rate Limiting</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">config</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">Config</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Host</span>:        <span style="color:#e6db74">&#34;https://kubernetes.example.com&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">QPS</span>:         <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>,  <span style="color:#75715e">// Disable rate limiting</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="timeout-configuration">Timeout Configuration</h2>
+<h3 id="request-timeout">Request Timeout</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">config</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">Config</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Host</span>:    <span style="color:#e6db74">&#34;https://kubernetes.example.com&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Timeout</span>: <span style="color:#ae81ff">30</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>,  <span style="color:#75715e">// 30 second timeout for all requests</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="per-request-timeout">Per-Request Timeout</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Use context for per-request timeout</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">cancel</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">WithTimeout</span>(<span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">Background</span>(), <span style="color:#ae81ff">10</span><span style="color:#f92672">*</span><span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">defer</span> <span style="color:#a6e22e">cancel</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">pod</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">CoreV1</span>().<span style="color:#a6e22e">Pods</span>(<span style="color:#e6db74">&#34;default&#34;</span>).<span style="color:#a6e22e">Get</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#e6db74">&#34;my-pod&#34;</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">GetOptions</span>{})
+</span></span></code></pre></div><h2 id="transport-customization">Transport Customization</h2>
+<h3 id="custom-http-transport">Custom HTTP Transport</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">transport</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">Transport</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">TLSClientConfig</span>: <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">tls</span>.<span style="color:#a6e22e">Config</span>{
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">InsecureSkipVerify</span>: <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">MaxIdleConns</span>:        <span style="color:#ae81ff">100</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">MaxIdleConnsPerHost</span>: <span style="color:#ae81ff">100</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">IdleConnTimeout</span>:     <span style="color:#ae81ff">90</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>,
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">config</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">Config</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Host</span>:      <span style="color:#e6db74">&#34;https://kubernetes.example.com&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Transport</span>: <span style="color:#a6e22e">transport</span>,
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="transport-wrapper">Transport Wrapper</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Add custom behavior to transport</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">config</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">Config</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Host</span>: <span style="color:#e6db74">&#34;https://kubernetes.example.com&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">WrapTransport</span>: <span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">rt</span> <span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">RoundTripper</span>) <span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">RoundTripper</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">loggingTransport</span>{
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">base</span>: <span style="color:#a6e22e">rt</span>,
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">loggingTransport</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">base</span> <span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">RoundTripper</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">t</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">loggingTransport</span>) <span style="color:#a6e22e">RoundTrip</span>(<span style="color:#a6e22e">req</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">Request</span>) (<span style="color:#f92672">*</span><span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">Response</span>, <span style="color:#66d9ef">error</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;Request: %s %s\n&#34;</span>, <span style="color:#a6e22e">req</span>.<span style="color:#a6e22e">Method</span>, <span style="color:#a6e22e">req</span>.<span style="color:#a6e22e">URL</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">resp</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">t</span>.<span style="color:#a6e22e">base</span>.<span style="color:#a6e22e">RoundTrip</span>(<span style="color:#a6e22e">req</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;Response: %d\n&#34;</span>, <span style="color:#a6e22e">resp</span>.<span style="color:#a6e22e">StatusCode</span>)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">resp</span>, <span style="color:#a6e22e">err</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="user-agent-configuration">User Agent Configuration</h2>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">config</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">Config</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Host</span>:      <span style="color:#e6db74">&#34;https://kubernetes.example.com&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">UserAgent</span>: <span style="color:#e6db74">&#34;my-application/v1.0.0&#34;</span>,
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Or use default</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">UserAgent</span> = <span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">DefaultKubernetesUserAgent</span>()
+</span></span></code></pre></div><h2 id="impersonation">Impersonation</h2>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">config</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">Config</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Host</span>: <span style="color:#e6db74">&#34;https://kubernetes.example.com&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Impersonate</span>: <span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">ImpersonationConfig</span>{
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">UserName</span>: <span style="color:#e6db74">&#34;user-to-impersonate&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Groups</span>:   []<span style="color:#66d9ef">string</span>{<span style="color:#e6db74">&#34;system:masters&#34;</span>},
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Extra</span>: <span style="color:#66d9ef">map</span>[<span style="color:#66d9ef">string</span>][]<span style="color:#66d9ef">string</span>{
+</span></span><span style="display:flex;"><span>            <span style="color:#e6db74">&#34;scopes&#34;</span>: {<span style="color:#e6db74">&#34;read&#34;</span>, <span style="color:#e6db74">&#34;write&#34;</span>},
+</span></span><span style="display:flex;"><span>        },
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="warning-handler">Warning Handler</h2>
+<p>Handle API server warnings:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">config</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">Config</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Host</span>: <span style="color:#e6db74">&#34;https://kubernetes.example.com&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">WarningHandler</span>: <span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">WarningHandlerFunc</span>(<span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">warning</span> <span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">WarningInfo</span>) {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;Warning: %s (code=%d, agent=%s)\n&#34;</span>, 
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">warning</span>.<span style="color:#a6e22e">Text</span>, <span style="color:#a6e22e">warning</span>.<span style="color:#a6e22e">Code</span>, <span style="color:#a6e22e">warning</span>.<span style="color:#a6e22e">Agent</span>)
+</span></span><span style="display:flex;"><span>    }),
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="configuration-patterns">Configuration Patterns</h2>
+<h3 id="pattern-1-try-in-cluster-fall-back-to-kubeconfig">Pattern 1: Try In-Cluster, Fall Back to Kubeconfig</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">GetConfig</span>() (<span style="color:#f92672">*</span><span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">Config</span>, <span style="color:#66d9ef">error</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Try in-cluster config first</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">config</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">InClusterConfig</span>()
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">config</span>, <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Fall back to kubeconfig</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">kubeconfig</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">os</span>.<span style="color:#a6e22e">Getenv</span>(<span style="color:#e6db74">&#34;KUBECONFIG&#34;</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">kubeconfig</span> <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;&#34;</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">kubeconfig</span> = <span style="color:#a6e22e">filepath</span>.<span style="color:#a6e22e">Join</span>(<span style="color:#a6e22e">os</span>.<span style="color:#a6e22e">Getenv</span>(<span style="color:#e6db74">&#34;HOME&#34;</span>), <span style="color:#e6db74">&#34;.kube&#34;</span>, <span style="color:#e6db74">&#34;config&#34;</span>)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">clientcmd</span>.<span style="color:#a6e22e">BuildConfigFromFlags</span>(<span style="color:#e6db74">&#34;&#34;</span>, <span style="color:#a6e22e">kubeconfig</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="pattern-2-configuration-with-overrides">Pattern 2: Configuration with Overrides</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">GetConfigWithOverrides</span>(<span style="color:#a6e22e">qps</span> <span style="color:#66d9ef">float32</span>, <span style="color:#a6e22e">burst</span> <span style="color:#66d9ef">int</span>) (<span style="color:#f92672">*</span><span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">Config</span>, <span style="color:#66d9ef">error</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">config</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">GetConfig</span>()
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>, <span style="color:#a6e22e">err</span>
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Apply overrides</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">QPS</span> = <span style="color:#a6e22e">qps</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">Burst</span> = <span style="color:#a6e22e">burst</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">Timeout</span> = <span style="color:#ae81ff">30</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">UserAgent</span> = <span style="color:#e6db74">&#34;my-app/v1.0.0&#34;</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">config</span>, <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="pattern-3-multiple-cluster-configuration">Pattern 3: Multiple Cluster Configuration</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">ClusterConfig</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Name</span>   <span style="color:#66d9ef">string</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Config</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">Config</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">LoadMultipleConfigs</span>(<span style="color:#a6e22e">kubeconfigPath</span> <span style="color:#66d9ef">string</span>) ([]<span style="color:#a6e22e">ClusterConfig</span>, <span style="color:#66d9ef">error</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">loadingRules</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">clientcmd</span>.<span style="color:#a6e22e">ClientConfigLoadingRules</span>{
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">ExplicitPath</span>: <span style="color:#a6e22e">kubeconfigPath</span>,
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">rawConfig</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">loadingRules</span>.<span style="color:#a6e22e">Load</span>()
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>, <span style="color:#a6e22e">err</span>
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">configs</span> []<span style="color:#a6e22e">ClusterConfig</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">for</span> <span style="color:#a6e22e">contextName</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">rawConfig</span>.<span style="color:#a6e22e">Contexts</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">overrides</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">clientcmd</span>.<span style="color:#a6e22e">ConfigOverrides</span>{
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">CurrentContext</span>: <span style="color:#a6e22e">contextName</span>,
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>        
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">clientConfig</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientcmd</span>.<span style="color:#a6e22e">NewNonInteractiveDeferredLoadingClientConfig</span>(
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">loadingRules</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">overrides</span>,
+</span></span><span style="display:flex;"><span>        )
+</span></span><span style="display:flex;"><span>        
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">config</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientConfig</span>.<span style="color:#a6e22e">ClientConfig</span>()
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">continue</span>
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>        
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">configs</span> = append(<span style="color:#a6e22e">configs</span>, <span style="color:#a6e22e">ClusterConfig</span>{
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">Name</span>:   <span style="color:#a6e22e">contextName</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">Config</span>: <span style="color:#a6e22e">config</span>,
+</span></span><span style="display:flex;"><span>        })
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">configs</span>, <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="environment-variables">Environment Variables</h2>
+<p>Common environment variables used by client-go:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Variable</th>
+          <th>Description</th>
+          <th>Default</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>KUBECONFIG</code></td>
+          <td>Path to kubeconfig file</td>
+          <td><code>~/.kube/config</code></td>
+      </tr>
+      <tr>
+          <td><code>KUBERNETES_SERVICE_HOST</code></td>
+          <td>API server host (in-cluster)</td>
+          <td>Set by Kubernetes</td>
+      </tr>
+      <tr>
+          <td><code>KUBERNETES_SERVICE_PORT</code></td>
+          <td>API server port (in-cluster)</td>
+          <td>Set by Kubernetes</td>
+      </tr>
+      <tr>
+          <td><code>KUBE_CLIENT_BACKOFF_BASE</code></td>
+          <td>Backoff base duration</td>
+          <td>1 second</td>
+      </tr>
+      <tr>
+          <td><code>KUBE_CLIENT_BACKOFF_DURATION</code></td>
+          <td>Backoff max duration</td>
+          <td>120 seconds</td>
+      </tr>
+  </tbody>
+</table>
+<h2 id="best-practices">Best Practices</h2>
+<h3 id="1-use-in-cluster-config-for-pods">1. Use In-Cluster Config for Pods</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// ✅ Good: Use in-cluster config for applications running in pods</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">config</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">InClusterConfig</span>()
+</span></span></code></pre></div><h3 id="2-configure-appropriate-rate-limits">2. Configure Appropriate Rate Limits</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// ✅ Good: Set rate limits based on your application&#39;s needs</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">QPS</span> = <span style="color:#ae81ff">50</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">Burst</span> = <span style="color:#ae81ff">100</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// ❌ Bad: Disabling rate limiting can overwhelm the API server</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">QPS</span> = <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>
+</span></span></code></pre></div><h3 id="3-set-reasonable-timeouts">3. Set Reasonable Timeouts</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// ✅ Good: Set timeout to prevent hanging</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">Timeout</span> = <span style="color:#ae81ff">30</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// ❌ Bad: No timeout can cause indefinite hangs</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">Timeout</span> = <span style="color:#ae81ff">0</span>
+</span></span></code></pre></div><h3 id="4-reuse-configuration">4. Reuse Configuration</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// ✅ Good: Create config once, reuse for multiple clients</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">config</span>, <span style="color:#a6e22e">_</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">InClusterConfig</span>()
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">clientset</span>, <span style="color:#a6e22e">_</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">kubernetes</span>.<span style="color:#a6e22e">NewForConfig</span>(<span style="color:#a6e22e">config</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">dynamicClient</span>, <span style="color:#a6e22e">_</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">dynamic</span>.<span style="color:#a6e22e">NewForConfig</span>(<span style="color:#a6e22e">config</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// ❌ Bad: Creating config multiple times</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">config1</span>, <span style="color:#a6e22e">_</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">InClusterConfig</span>()
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">clientset</span>, <span style="color:#a6e22e">_</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">kubernetes</span>.<span style="color:#a6e22e">NewForConfig</span>(<span style="color:#a6e22e">config1</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">config2</span>, <span style="color:#a6e22e">_</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">InClusterConfig</span>()
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">dynamicClient</span>, <span style="color:#a6e22e">_</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">dynamic</span>.<span style="color:#a6e22e">NewForConfig</span>(<span style="color:#a6e22e">config2</span>)
+</span></span></code></pre></div><h3 id="5-handle-configuration-errors">5. Handle Configuration Errors</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// ✅ Good: Proper error handling</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">config</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">InClusterConfig</span>()
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Errorf</span>(<span style="color:#e6db74">&#34;failed to get config: %w&#34;</span>, <span style="color:#a6e22e">err</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// ❌ Bad: Ignoring errors</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">config</span>, <span style="color:#a6e22e">_</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">rest</span>.<span style="color:#a6e22e">InClusterConfig</span>()
+</span></span></code></pre></div><h3 id="6-use-context-for-cancellation">6. Use Context for Cancellation</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// ✅ Good: Use context for request cancellation</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">cancel</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">WithTimeout</span>(<span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">Background</span>(), <span style="color:#ae81ff">30</span><span style="color:#f92672">*</span><span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">defer</span> <span style="color:#a6e22e">cancel</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">pod</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">CoreV1</span>().<span style="color:#a6e22e">Pods</span>(<span style="color:#e6db74">&#34;default&#34;</span>).<span style="color:#a6e22e">Get</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#e6db74">&#34;my-pod&#34;</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">GetOptions</span>{})
+</span></span></code></pre></div><h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-configuration-issues">Common Configuration Issues</h3>
+<h4 id="1-certificate-verification-failures">1. Certificate Verification Failures</h4>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Temporary workaround (not recommended for production)</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">TLSClientConfig</span>.<span style="color:#a6e22e">Insecure</span> = <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Better: Use proper CA certificate</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">TLSClientConfig</span>.<span style="color:#a6e22e">CAFile</span> = <span style="color:#e6db74">&#34;/path/to/ca.crt&#34;</span>
+</span></span></code></pre></div><h4 id="2-authentication-failures">2. Authentication Failures</h4>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Check token validity</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">token</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">ioutil</span>.<span style="color:#a6e22e">ReadFile</span>(<span style="color:#e6db74">&#34;/var/run/secrets/kubernetes.io/serviceaccount/token&#34;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">log</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;Failed to read token: %v&#34;</span>, <span style="color:#a6e22e">err</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Verify RBAC permissions</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// kubectl auth can-i &lt;verb&gt; &lt;resource&gt; --as=&lt;user&gt;</span>
+</span></span></code></pre></div><h4 id="3-connection-timeouts">3. Connection Timeouts</h4>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Increase timeout</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">Timeout</span> = <span style="color:#ae81ff">60</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Or use context with timeout</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">cancel</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">WithTimeout</span>(<span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">Background</span>(), <span style="color:#ae81ff">60</span><span style="color:#f92672">*</span><span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">defer</span> <span style="color:#a6e22e">cancel</span>()
+</span></span></code></pre></div><h4 id="4-rate-limiting-issues">4. Rate Limiting Issues</h4>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Increase rate limits if you have permission</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">QPS</span> = <span style="color:#ae81ff">100</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">Burst</span> = <span style="color:#ae81ff">200</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Or implement backoff retry logic</span>
+</span></span></code></pre></div><h2 id="summary">Summary</h2>
+<p>Configuration in <code>client-go</code> is flexible and supports multiple authentication methods and deployment scenarios:</p>
+<ul>
+<li><strong>In-Cluster</strong>: Automatic configuration for pods using service accounts</li>
+<li><strong>Kubeconfig</strong>: File-based configuration for out-of-cluster applications</li>
+<li><strong>Manual</strong>: Programmatic configuration for advanced use cases</li>
+</ul>
+<p>Key configuration aspects:</p>
+<ul>
+<li><strong>Authentication</strong>: Tokens, certificates, exec plugins, OIDC</li>
+<li><strong>Rate Limiting</strong>: Client-side throttling to protect API server</li>
+<li><strong>Timeouts</strong>: Request and connection timeouts</li>
+<li><strong>TLS</strong>: Certificate verification and mutual TLS</li>
+<li><strong>Transport</strong>: HTTP transport customization</li>
+</ul>
+<p>Choose the appropriate configuration method based on your deployment environment and security requirements.</p>
+
+</article>
+
+            </div>
+            
+            <footer class="content-footer">
+                <p>&copy; 2026 The Kubernetes Authors | <a href="https://www.apache.org/licenses/LICENSE-2.0">Apache License 2.0</a></p>
+            </footer>
+        </main>
+    </div>
+
+    <script src="/js/main.js"></script>
+</body>
+</html>

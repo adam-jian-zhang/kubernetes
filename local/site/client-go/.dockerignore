@@ -1,0 +1,28 @@
+# Documentation files (not needed in runtime image)
+README.md
+DEPLOYMENT.md
+SITE-SUMMARY.md
+QUICK-START.md
+SVG-CONVERSION.md
+FINAL-SUMMARY.md
+VERIFICATION.md
+DELIVERABLES.md
+LINK-FIX.md
+
+# Git
+.git
+.gitignore
+
+# Docker files
+docker-compose.yml
+.dockerignore
+
+# Makefile (not needed in runtime)
+Makefile
+
+# Note: We need these during build, so they're NOT ignored:
+# - scripts/ (needed for build)
+# - content/ (needed for build)
+# - themes/ (needed for build)
+# - static/ (needed for build)
+# - hugo.toml (needed for build)

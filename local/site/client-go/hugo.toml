@@ -1,0 +1,64 @@
+baseURL = 'http://localhost:9002/'
+languageCode = 'en-us'
+title = 'client-go Documentation'
+theme = 'client-go-docs'
+
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true
+  [markup.highlight]
+    style = 'monokai'
+    lineNos = false
+    lineNumbersInTable = false
+
+[params]
+  description = "Comprehensive documentation for k8s.io/client-go - the official Kubernetes Go client library"
+  author = "Kubernetes"
+  github = "https://github.com/kubernetes/client-go"
+
+[menu]
+  [[menu.main]]
+    name = "Home"
+    url = "/"
+    weight = 1
+  
+  [[menu.main]]
+    name = "Overview"
+    url = "/00-overview/"
+    weight = 2
+  
+  [[menu.main]]
+    name = "Core Packages"
+    url = "/01-core-packages/"
+    weight = 3
+  
+  [[menu.main]]
+    name = "Configuration"
+    url = "/02-configuration/"
+    weight = 4
+  
+  [[menu.main]]
+    name = "Controllers"
+    url = "/03-controller-infrastructure/"
+    weight = 5
+  
+  [[menu.main]]
+    name = "Advanced Features"
+    url = "/04-advanced-features/"
+    weight = 6
+  
+  [[menu.main]]
+    name = "Utilities"
+    url = "/05-utilities/"
+    weight = 7
+  
+  [[menu.main]]
+    name = "Examples"
+    url = "/06-examples/"
+    weight = 8
+  
+  [[menu.main]]
+    name = "Index"
+    url = "/index-page/"
+    weight = 9

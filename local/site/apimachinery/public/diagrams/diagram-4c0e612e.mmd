@@ -1,0 +1,13 @@
+graph LR
+    V1[External v1] --> Internal[Internal Version]
+    V2[External v2] --> Internal
+    V1Beta1[External v1beta1] --> Internal
+    
+    Internal --> V1
+    Internal --> V2
+    Internal --> V1Beta1
+    
+    style Internal fill:#e1f5ff
+    style V1 fill:#fff4e1
+    style V2 fill:#fff4e1
+    style V1Beta1 fill:#fff4e1

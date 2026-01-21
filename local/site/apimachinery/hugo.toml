@@ -1,0 +1,13 @@
+baseURL = 'http://localhost:9001/'
+languageCode = 'en-us'
+title = 'k8s.io/apimachinery Documentation'
+theme = 'apimachinery-theme'
+
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true
+
+[params]
+  description = "Comprehensive documentation for k8s.io/apimachinery"
+  author = "Kubernetes"

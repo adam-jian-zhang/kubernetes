@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  client-go-docs:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: client-go-docs:latest
+    container_name: client-go-docs
+    ports:
+      - "9002:9002"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9002')"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    labels:
+      - "com.kubernetes.docs.service=client-go"
+      - "com.kubernetes.docs.version=1.0.0"

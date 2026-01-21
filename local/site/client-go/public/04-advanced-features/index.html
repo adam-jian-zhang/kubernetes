@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en-us" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Comprehensive documentation for k8s.io/client-go - the official Kubernetes Go client library">
+    <title>Advanced Features | client-go Documentation</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h1 class="sidebar-title">
+                    <i class="fas fa-cube"></i>
+                    <span class="sidebar-title-text">client-go</span>
+                </h1>
+                <button id="theme-toggle" class="icon-btn" title="Toggle theme">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+            
+            <nav class="sidebar-nav">
+                
+                
+                <a href="/" class="nav-link ">
+                    <span class="nav-text">Home</span>
+                </a>
+                
+                <a href="/00-overview/" class="nav-link ">
+                    <span class="nav-text">Overview</span>
+                </a>
+                
+                <a href="/01-core-packages/" class="nav-link ">
+                    <span class="nav-text">Core Packages</span>
+                </a>
+                
+                <a href="/02-configuration/" class="nav-link ">
+                    <span class="nav-text">Configuration</span>
+                </a>
+                
+                <a href="/03-controller-infrastructure/" class="nav-link ">
+                    <span class="nav-text">Controllers</span>
+                </a>
+                
+                <a href="/04-advanced-features/" class="nav-link active">
+                    <span class="nav-text">Advanced Features</span>
+                </a>
+                
+                <a href="/05-utilities/" class="nav-link ">
+                    <span class="nav-text">Utilities</span>
+                </a>
+                
+                <a href="/06-examples/" class="nav-link ">
+                    <span class="nav-text">Examples</span>
+                </a>
+                
+                <a href="/index-page/" class="nav-link ">
+                    <span class="nav-text">Index</span>
+                </a>
+                
+            </nav>
+            
+            <div class="sidebar-footer">
+                <a href="https://github.com/kubernetes/client-go" target="_blank" class="github-link">
+                    <i class="fab fa-github"></i>
+                    <span class="nav-text">GitHub</span>
+                </a>
+            </div>
+        </aside>
+
+        
+        <div id="resize-handle" class="resize-handle"></div>
+
+        
+        <main class="main-content">
+            <div class="content-header">
+                <button id="menu-toggle" class="icon-btn" title="Toggle menu">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1 class="page-title">Advanced Features</h1>
+            </div>
+            
+            <div class="content-body">
+                
+<article class="article">
+    <h1 id="advanced-features">Advanced Features</h1>
+<p>This document covers advanced features in <code>client-go</code> including Server-Side Apply, metadata operations, scaling, and other specialized functionality.</p>
+<h2 id="server-side-apply">Server-Side Apply</h2>
+<p>Server-Side Apply (SSA) is a declarative API for managing Kubernetes resources with field-level ownership tracking.</p>
+<h3 id="why-server-side-apply">Why Server-Side Apply?</h3>
+<p>Traditional Update operations have several limitations:</p>
+<div class="mermaid-diagram"><img src="/images/diagram_6d92e7ebb6f2740f.svg" alt="Diagram" /></div>
+<p><strong>Benefits</strong>:</p>
+<ul>
+<li><strong>Field Ownership</strong>: Each field is owned by a specific field manager</li>
+<li><strong>Conflict Detection</strong>: Conflicts are detected and can be resolved</li>
+<li><strong>Declarative</strong>: Specify desired state, not operations</li>
+<li><strong>Partial Updates</strong>: Only specify fields you care about</li>
+<li><strong>Multi-Actor</strong>: Multiple controllers can safely manage the same object</li>
+</ul>
+<h3 id="apply-configurations-package">Apply Configurations Package</h3>
+<p><strong>Location</strong>: <code>applyconfigurations/</code></p>
+<p>Apply configurations are generated types that represent partial objects for Server-Side Apply.</p>
+<h4 id="key-differences-from-regular-types">Key Differences from Regular Types</h4>
+<table>
+  <thead>
+      <tr>
+          <th>Regular Types</th>
+          <th>Apply Configuration Types</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>All fields are values</td>
+          <td>All fields are pointers</td>
+      </tr>
+      <tr>
+          <td>Required fields must be set</td>
+          <td>All fields are optional</td>
+      </tr>
+      <tr>
+          <td>Zero values are sent</td>
+          <td>Nil pointers are omitted</td>
+      </tr>
+      <tr>
+          <td>For Create/Update</td>
+          <td>For Apply operations</td>
+      </tr>
+  </tbody>
+</table>
+<h4 id="creating-apply-configurations">Creating Apply Configurations</h4>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">import</span> (
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">corev1</span> <span style="color:#e6db74">&#34;k8s.io/api/core/v1&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">metav1</span> <span style="color:#e6db74">&#34;k8s.io/apimachinery/pkg/apis/meta/v1&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">appsv1ac</span> <span style="color:#e6db74">&#34;k8s.io/client-go/applyconfigurations/apps/v1&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">corev1ac</span> <span style="color:#e6db74">&#34;k8s.io/client-go/applyconfigurations/core/v1&#34;</span>
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Create a deployment apply configuration</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">deployment</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">appsv1ac</span>.<span style="color:#a6e22e">Deployment</span>(<span style="color:#e6db74">&#34;my-deployment&#34;</span>, <span style="color:#e6db74">&#34;default&#34;</span>).
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">WithLabels</span>(<span style="color:#66d9ef">map</span>[<span style="color:#66d9ef">string</span>]<span style="color:#66d9ef">string</span>{
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;app&#34;</span>: <span style="color:#e6db74">&#34;myapp&#34;</span>,
+</span></span><span style="display:flex;"><span>    }).
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">WithSpec</span>(<span style="color:#a6e22e">appsv1ac</span>.<span style="color:#a6e22e">DeploymentSpec</span>().
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">WithReplicas</span>(<span style="color:#ae81ff">3</span>).
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">WithSelector</span>(<span style="color:#a6e22e">metav1ac</span>.<span style="color:#a6e22e">LabelSelector</span>().
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">WithMatchLabels</span>(<span style="color:#66d9ef">map</span>[<span style="color:#66d9ef">string</span>]<span style="color:#66d9ef">string</span>{
+</span></span><span style="display:flex;"><span>                <span style="color:#e6db74">&#34;app&#34;</span>: <span style="color:#e6db74">&#34;myapp&#34;</span>,
+</span></span><span style="display:flex;"><span>            }),
+</span></span><span style="display:flex;"><span>        ).
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">WithTemplate</span>(<span style="color:#a6e22e">corev1ac</span>.<span style="color:#a6e22e">PodTemplateSpec</span>().
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">WithLabels</span>(<span style="color:#66d9ef">map</span>[<span style="color:#66d9ef">string</span>]<span style="color:#66d9ef">string</span>{
+</span></span><span style="display:flex;"><span>                <span style="color:#e6db74">&#34;app&#34;</span>: <span style="color:#e6db74">&#34;myapp&#34;</span>,
+</span></span><span style="display:flex;"><span>            }).
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">WithSpec</span>(<span style="color:#a6e22e">corev1ac</span>.<span style="color:#a6e22e">PodSpec</span>().
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">WithContainers</span>(
+</span></span><span style="display:flex;"><span>                    <span style="color:#a6e22e">corev1ac</span>.<span style="color:#a6e22e">Container</span>().
+</span></span><span style="display:flex;"><span>                        <span style="color:#a6e22e">WithName</span>(<span style="color:#e6db74">&#34;nginx&#34;</span>).
+</span></span><span style="display:flex;"><span>                        <span style="color:#a6e22e">WithImage</span>(<span style="color:#e6db74">&#34;nginx:1.21&#34;</span>),
+</span></span><span style="display:flex;"><span>                ),
+</span></span><span style="display:flex;"><span>            ),
+</span></span><span style="display:flex;"><span>        ),
+</span></span><span style="display:flex;"><span>    )
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Apply the configuration</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">result</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">AppsV1</span>().<span style="color:#a6e22e">Deployments</span>(<span style="color:#e6db74">&#34;default&#34;</span>).
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Apply</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">deployment</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">ApplyOptions</span>{
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">FieldManager</span>: <span style="color:#e6db74">&#34;my-controller&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Force</span>:        <span style="color:#66d9ef">false</span>,
+</span></span><span style="display:flex;"><span>    })
+</span></span></code></pre></div><h3 id="apply-options">Apply Options</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">ApplyOptions</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// FieldManager is the name of the actor applying the configuration</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Required for tracking field ownership</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">FieldManager</span> <span style="color:#66d9ef">string</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Force forces the apply operation to succeed even if there are conflicts</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Use with caution as it can override other field managers</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Force</span> <span style="color:#66d9ef">bool</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// DryRun specifies whether to perform a dry run</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Options: &#34;&#34;, &#34;All&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">DryRun</span> []<span style="color:#66d9ef">string</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// FieldValidation specifies the level of field validation</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Options: &#34;Ignore&#34;, &#34;Warn&#34;, &#34;Strict&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">FieldValidation</span> <span style="color:#66d9ef">string</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="field-manager-best-practices">Field Manager Best Practices</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// ✅ Good: Unique field manager per controller/component</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">applyOptions</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">ApplyOptions</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">FieldManager</span>: <span style="color:#e6db74">&#34;my-controller-v1&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Force</span>:        <span style="color:#66d9ef">false</span>,
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// ❌ Bad: Generic field manager name</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">applyOptions</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">ApplyOptions</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">FieldManager</span>: <span style="color:#e6db74">&#34;controller&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Force</span>:        <span style="color:#66d9ef">false</span>,
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// ✅ Good: Use Force only when necessary (e.g., taking over fields)</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">applyOptions</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">ApplyOptions</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">FieldManager</span>: <span style="color:#e6db74">&#34;migration-controller&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Force</span>:        <span style="color:#66d9ef">true</span>,  <span style="color:#75715e">// Taking over fields from old controller</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="extractmodifyapply-pattern">Extract/Modify/Apply Pattern</h3>
+<p>For controllers that need to update existing resources:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// 1. Get the current object</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">deployment</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">AppsV1</span>().<span style="color:#a6e22e">Deployments</span>(<span style="color:#e6db74">&#34;default&#34;</span>).
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Get</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#e6db74">&#34;my-deployment&#34;</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">GetOptions</span>{})
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">err</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 2. Extract the apply configuration for your field manager</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">deploymentApplyConfig</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">appsv1ac</span>.<span style="color:#a6e22e">ExtractDeployment</span>(<span style="color:#a6e22e">deployment</span>, <span style="color:#e6db74">&#34;my-controller&#34;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">err</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 3. Modify the apply configuration</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">deploymentApplyConfig</span>.<span style="color:#a6e22e">Spec</span>.<span style="color:#a6e22e">WithReplicas</span>(<span style="color:#ae81ff">5</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 4. Apply the modified configuration</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">result</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">AppsV1</span>().<span style="color:#a6e22e">Deployments</span>(<span style="color:#e6db74">&#34;default&#34;</span>).
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Apply</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">deploymentApplyConfig</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">ApplyOptions</span>{
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">FieldManager</span>: <span style="color:#e6db74">&#34;my-controller&#34;</span>,
+</span></span><span style="display:flex;"><span>    })
+</span></span></code></pre></div><h3 id="viewing-managed-fields">Viewing Managed Fields</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Get object with managed fields</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">deployment</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">AppsV1</span>().<span style="color:#a6e22e">Deployments</span>(<span style="color:#e6db74">&#34;default&#34;</span>).
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Get</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#e6db74">&#34;my-deployment&#34;</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">GetOptions</span>{})
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Inspect managed fields</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">for</span> <span style="color:#a6e22e">_</span>, <span style="color:#a6e22e">mf</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">deployment</span>.<span style="color:#a6e22e">ManagedFields</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;Manager: %s, Operation: %s, Time: %s\n&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">mf</span>.<span style="color:#a6e22e">Manager</span>, <span style="color:#a6e22e">mf</span>.<span style="color:#a6e22e">Operation</span>, <span style="color:#a6e22e">mf</span>.<span style="color:#a6e22e">Time</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;Fields: %s\n&#34;</span>, <span style="color:#a6e22e">mf</span>.<span style="color:#a6e22e">FieldsV1</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="server-side-apply-flow">Server-Side Apply Flow</h3>
+<div class="mermaid-diagram"><img src="/images/diagram_742028594e009c8a.svg" alt="Diagram" /></div>
+<h2 id="metadata-client">Metadata Client</h2>
+<p><strong>Location</strong>: <code>metadata/</code></p>
+<p>The metadata client provides optimized operations that only work with object metadata.</p>
+<h3 id="benefits">Benefits</h3>
+<ul>
+<li><strong>Bandwidth Reduction</strong>: Only metadata is transferred (no spec/status)</li>
+<li><strong>Faster Operations</strong>: Less data to serialize/deserialize</li>
+<li><strong>Lower Memory</strong>: Smaller objects in memory</li>
+<li><strong>Garbage Collection</strong>: Ideal for ownership and finalizer management</li>
+</ul>
+<h3 id="using-metadata-client">Using Metadata Client</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">import</span> (
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;k8s.io/client-go/metadata&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">metav1</span> <span style="color:#e6db74">&#34;k8s.io/apimachinery/pkg/apis/meta/v1&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;k8s.io/apimachinery/pkg/runtime/schema&#34;</span>
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Create metadata client</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">metadataClient</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">metadata</span>.<span style="color:#a6e22e">NewForConfig</span>(<span style="color:#a6e22e">config</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Define resource</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">gvr</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">schema</span>.<span style="color:#a6e22e">GroupVersionResource</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Group</span>:    <span style="color:#e6db74">&#34;apps&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Version</span>:  <span style="color:#e6db74">&#34;v1&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Resource</span>: <span style="color:#e6db74">&#34;deployments&#34;</span>,
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Get metadata only</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">obj</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">metadataClient</span>.<span style="color:#a6e22e">Resource</span>(<span style="color:#a6e22e">gvr</span>).<span style="color:#a6e22e">Namespace</span>(<span style="color:#e6db74">&#34;default&#34;</span>).
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Get</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#e6db74">&#34;my-deployment&#34;</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">GetOptions</span>{})
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// obj is *metav1.PartialObjectMetadata</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;Name: %s\n&#34;</span>, <span style="color:#a6e22e">obj</span>.<span style="color:#a6e22e">Name</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;UID: %s\n&#34;</span>, <span style="color:#a6e22e">obj</span>.<span style="color:#a6e22e">UID</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;Labels: %v\n&#34;</span>, <span style="color:#a6e22e">obj</span>.<span style="color:#a6e22e">Labels</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;Annotations: %v\n&#34;</span>, <span style="color:#a6e22e">obj</span>.<span style="color:#a6e22e">Annotations</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;OwnerReferences: %v\n&#34;</span>, <span style="color:#a6e22e">obj</span>.<span style="color:#a6e22e">OwnerReferences</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;Finalizers: %v\n&#34;</span>, <span style="color:#a6e22e">obj</span>.<span style="color:#a6e22e">Finalizers</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Update metadata</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">obj</span>.<span style="color:#a6e22e">Labels</span>[<span style="color:#e6db74">&#34;updated&#34;</span>] = <span style="color:#e6db74">&#34;true&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">updated</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">metadataClient</span>.<span style="color:#a6e22e">Resource</span>(<span style="color:#a6e22e">gvr</span>).<span style="color:#a6e22e">Namespace</span>(<span style="color:#e6db74">&#34;default&#34;</span>).
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Update</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">obj</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">UpdateOptions</span>{})
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Delete with metadata client</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">err</span> = <span style="color:#a6e22e">metadataClient</span>.<span style="color:#a6e22e">Resource</span>(<span style="color:#a6e22e">gvr</span>).<span style="color:#a6e22e">Namespace</span>(<span style="color:#e6db74">&#34;default&#34;</span>).
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Delete</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#e6db74">&#34;my-deployment&#34;</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">DeleteOptions</span>{})
+</span></span></code></pre></div><h3 id="use-cases">Use Cases</h3>
+<ol>
+<li><strong>Label/Annotation Management</strong></li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Update labels without fetching full object</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">obj</span>, <span style="color:#a6e22e">_</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">metadataClient</span>.<span style="color:#a6e22e">Resource</span>(<span style="color:#a6e22e">gvr</span>).<span style="color:#a6e22e">Namespace</span>(<span style="color:#a6e22e">ns</span>).<span style="color:#a6e22e">Get</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">name</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">GetOptions</span>{})
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">obj</span>.<span style="color:#a6e22e">Labels</span>[<span style="color:#e6db74">&#34;environment&#34;</span>] = <span style="color:#e6db74">&#34;production&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">metadataClient</span>.<span style="color:#a6e22e">Resource</span>(<span style="color:#a6e22e">gvr</span>).<span style="color:#a6e22e">Namespace</span>(<span style="color:#a6e22e">ns</span>).<span style="color:#a6e22e">Update</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">obj</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">UpdateOptions</span>{})
+</span></span></code></pre></div><ol start="2">
+<li><strong>Finalizer Management</strong></li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Add finalizer</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">obj</span>, <span style="color:#a6e22e">_</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">metadataClient</span>.<span style="color:#a6e22e">Resource</span>(<span style="color:#a6e22e">gvr</span>).<span style="color:#a6e22e">Namespace</span>(<span style="color:#a6e22e">ns</span>).<span style="color:#a6e22e">Get</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">name</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">GetOptions</span>{})
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">obj</span>.<span style="color:#a6e22e">Finalizers</span> = append(<span style="color:#a6e22e">obj</span>.<span style="color:#a6e22e">Finalizers</span>, <span style="color:#e6db74">&#34;my-controller/finalizer&#34;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">metadataClient</span>.<span style="color:#a6e22e">Resource</span>(<span style="color:#a6e22e">gvr</span>).<span style="color:#a6e22e">Namespace</span>(<span style="color:#a6e22e">ns</span>).<span style="color:#a6e22e">Update</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">obj</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">UpdateOptions</span>{})
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Remove finalizer</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">obj</span>.<span style="color:#a6e22e">Finalizers</span> = <span style="color:#a6e22e">removeString</span>(<span style="color:#a6e22e">obj</span>.<span style="color:#a6e22e">Finalizers</span>, <span style="color:#e6db74">&#34;my-controller/finalizer&#34;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">metadataClient</span>.<span style="color:#a6e22e">Resource</span>(<span style="color:#a6e22e">gvr</span>).<span style="color:#a6e22e">Namespace</span>(<span style="color:#a6e22e">ns</span>).<span style="color:#a6e22e">Update</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">obj</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">UpdateOptions</span>{})
+</span></span></code></pre></div><ol start="3">
+<li><strong>Ownership Tracking</strong></li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Check owner references</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">obj</span>, <span style="color:#a6e22e">_</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">metadataClient</span>.<span style="color:#a6e22e">Resource</span>(<span style="color:#a6e22e">gvr</span>).<span style="color:#a6e22e">Namespace</span>(<span style="color:#a6e22e">ns</span>).<span style="color:#a6e22e">Get</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">name</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">GetOptions</span>{})
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">for</span> <span style="color:#a6e22e">_</span>, <span style="color:#a6e22e">owner</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">obj</span>.<span style="color:#a6e22e">OwnerReferences</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;Owner: %s/%s (UID: %s)\n&#34;</span>, <span style="color:#a6e22e">owner</span>.<span style="color:#a6e22e">Kind</span>, <span style="color:#a6e22e">owner</span>.<span style="color:#a6e22e">Name</span>, <span style="color:#a6e22e">owner</span>.<span style="color:#a6e22e">UID</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="scale-subresource">Scale Subresource</h2>
+<p><strong>Location</strong>: <code>scale/</code></p>
+<p>The scale package provides a generic interface for scaling resources.</p>
+<h3 id="scale-client">Scale Client</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">import</span> (
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;k8s.io/client-go/scale&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;k8s.io/apimachinery/pkg/runtime/schema&#34;</span>
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Create scale client</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">scaleClient</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">scale</span>.<span style="color:#a6e22e">NewForConfig</span>(
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">config</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">mapper</span>,           <span style="color:#75715e">// RESTMapper for resource discovery</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">dynamic</span>.<span style="color:#a6e22e">LegacyAPIPathResolverFunc</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">schema</span>.<span style="color:#a6e22e">GroupResource</span>{},
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Get current scale</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">currentScale</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">scaleClient</span>.<span style="color:#a6e22e">Scales</span>(<span style="color:#e6db74">&#34;default&#34;</span>).<span style="color:#a6e22e">Get</span>(
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">ctx</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">schema</span>.<span style="color:#a6e22e">GroupResource</span>{<span style="color:#a6e22e">Group</span>: <span style="color:#e6db74">&#34;apps&#34;</span>, <span style="color:#a6e22e">Resource</span>: <span style="color:#e6db74">&#34;deployments&#34;</span>},
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;my-deployment&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">GetOptions</span>{},
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;Current replicas: %d\n&#34;</span>, <span style="color:#a6e22e">currentScale</span>.<span style="color:#a6e22e">Spec</span>.<span style="color:#a6e22e">Replicas</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;Status replicas: %d\n&#34;</span>, <span style="color:#a6e22e">currentScale</span>.<span style="color:#a6e22e">Status</span>.<span style="color:#a6e22e">Replicas</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Update scale</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">currentScale</span>.<span style="color:#a6e22e">Spec</span>.<span style="color:#a6e22e">Replicas</span> = <span style="color:#ae81ff">5</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">updatedScale</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">scaleClient</span>.<span style="color:#a6e22e">Scales</span>(<span style="color:#e6db74">&#34;default&#34;</span>).<span style="color:#a6e22e">Update</span>(
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">ctx</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">schema</span>.<span style="color:#a6e22e">GroupResource</span>{<span style="color:#a6e22e">Group</span>: <span style="color:#e6db74">&#34;apps&#34;</span>, <span style="color:#a6e22e">Resource</span>: <span style="color:#e6db74">&#34;deployments&#34;</span>},
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">currentScale</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">UpdateOptions</span>{},
+</span></span><span style="display:flex;"><span>)
+</span></span></code></pre></div><h3 id="using-typed-client-scale-methods">Using Typed Client Scale Methods</h3>
+<p>Most typed clients provide built-in scale methods:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Get scale</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">scale</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">AppsV1</span>().<span style="color:#a6e22e">Deployments</span>(<span style="color:#e6db74">&#34;default&#34;</span>).
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">GetScale</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#e6db74">&#34;my-deployment&#34;</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">GetOptions</span>{})
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Update scale</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">scale</span>.<span style="color:#a6e22e">Spec</span>.<span style="color:#a6e22e">Replicas</span> = <span style="color:#ae81ff">5</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">updatedScale</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">AppsV1</span>().<span style="color:#a6e22e">Deployments</span>(<span style="color:#e6db74">&#34;default&#34;</span>).
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">UpdateScale</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#e6db74">&#34;my-deployment&#34;</span>, <span style="color:#a6e22e">scale</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">UpdateOptions</span>{})
+</span></span></code></pre></div><h3 id="autoscaling-integration">Autoscaling Integration</h3>
+<p>The scale subresource is used by the Horizontal Pod Autoscaler:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// HPA uses scale subresource to adjust replicas</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">hpa</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">autoscalingv2</span>.<span style="color:#a6e22e">HorizontalPodAutoscaler</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">ObjectMeta</span>: <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">ObjectMeta</span>{
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Name</span>:      <span style="color:#e6db74">&#34;my-hpa&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Namespace</span>: <span style="color:#e6db74">&#34;default&#34;</span>,
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Spec</span>: <span style="color:#a6e22e">autoscalingv2</span>.<span style="color:#a6e22e">HorizontalPodAutoscalerSpec</span>{
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">ScaleTargetRef</span>: <span style="color:#a6e22e">autoscalingv2</span>.<span style="color:#a6e22e">CrossVersionObjectReference</span>{
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">APIVersion</span>: <span style="color:#e6db74">&#34;apps/v1&#34;</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">Kind</span>:       <span style="color:#e6db74">&#34;Deployment&#34;</span>,
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">Name</span>:       <span style="color:#e6db74">&#34;my-deployment&#34;</span>,
+</span></span><span style="display:flex;"><span>        },
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">MinReplicas</span>: <span style="color:#a6e22e">ptr</span>.<span style="color:#a6e22e">To</span>[<span style="color:#66d9ef">int32</span>](<span style="color:#ae81ff">2</span>),
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">MaxReplicas</span>: <span style="color:#ae81ff">10</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Metrics</span>: []<span style="color:#a6e22e">autoscalingv2</span>.<span style="color:#a6e22e">MetricSpec</span>{
+</span></span><span style="display:flex;"><span>            {
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">Type</span>: <span style="color:#a6e22e">autoscalingv2</span>.<span style="color:#a6e22e">ResourceMetricSourceType</span>,
+</span></span><span style="display:flex;"><span>                <span style="color:#a6e22e">Resource</span>: <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">autoscalingv2</span>.<span style="color:#a6e22e">ResourceMetricSource</span>{
+</span></span><span style="display:flex;"><span>                    <span style="color:#a6e22e">Name</span>: <span style="color:#a6e22e">corev1</span>.<span style="color:#a6e22e">ResourceCPU</span>,
+</span></span><span style="display:flex;"><span>                    <span style="color:#a6e22e">Target</span>: <span style="color:#a6e22e">autoscalingv2</span>.<span style="color:#a6e22e">MetricTarget</span>{
+</span></span><span style="display:flex;"><span>                        <span style="color:#a6e22e">Type</span>:               <span style="color:#a6e22e">autoscalingv2</span>.<span style="color:#a6e22e">UtilizationMetricType</span>,
+</span></span><span style="display:flex;"><span>                        <span style="color:#a6e22e">AverageUtilization</span>: <span style="color:#a6e22e">ptr</span>.<span style="color:#a6e22e">To</span>[<span style="color:#66d9ef">int32</span>](<span style="color:#ae81ff">80</span>),
+</span></span><span style="display:flex;"><span>                    },
+</span></span><span style="display:flex;"><span>                },
+</span></span><span style="display:flex;"><span>            },
+</span></span><span style="display:flex;"><span>        },
+</span></span><span style="display:flex;"><span>    },
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="paging">Paging</h2>
+<p><strong>Location</strong>: <code>tools/pager/</code></p>
+<p>The pager package provides efficient pagination for large list operations.</p>
+<h3 id="why-paging">Why Paging?</h3>
+<div class="mermaid-diagram"><img src="/images/diagram_6aa0f4b9fc044bee.svg" alt="Diagram" /></div>
+<h3 id="using-pager">Using Pager</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">import</span> (
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;k8s.io/client-go/tools/pager&#34;</span>
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Create pager</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">listPager</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">pager</span>.<span style="color:#a6e22e">New</span>(<span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">ctx</span> <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">Context</span>, <span style="color:#a6e22e">opts</span> <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">ListOptions</span>) (<span style="color:#a6e22e">runtime</span>.<span style="color:#a6e22e">Object</span>, <span style="color:#66d9ef">error</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">CoreV1</span>().<span style="color:#a6e22e">Pods</span>(<span style="color:#e6db74">&#34;&#34;</span>).<span style="color:#a6e22e">List</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">opts</span>)
+</span></span><span style="display:flex;"><span>})
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Set page size</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">listPager</span>.<span style="color:#a6e22e">PageSize</span> = <span style="color:#ae81ff">500</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Iterate through pages</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">listPager</span>.<span style="color:#a6e22e">EachListItem</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">ListOptions</span>{}, <span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">obj</span> <span style="color:#a6e22e">runtime</span>.<span style="color:#a6e22e">Object</span>) <span style="color:#66d9ef">error</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">pod</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">obj</span>.(<span style="color:#f92672">*</span><span style="color:#a6e22e">corev1</span>.<span style="color:#a6e22e">Pod</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;Pod: %s/%s\n&#34;</span>, <span style="color:#a6e22e">pod</span>.<span style="color:#a6e22e">Namespace</span>, <span style="color:#a6e22e">pod</span>.<span style="color:#a6e22e">Name</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>})
+</span></span></code></pre></div><h3 id="manual-pagination">Manual Pagination</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// First page</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">listOptions</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">ListOptions</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Limit</span>: <span style="color:#ae81ff">500</span>,
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">podList</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">CoreV1</span>().<span style="color:#a6e22e">Pods</span>(<span style="color:#e6db74">&#34;&#34;</span>).<span style="color:#a6e22e">List</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">listOptions</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Process first page</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">for</span> <span style="color:#a6e22e">_</span>, <span style="color:#a6e22e">pod</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">podList</span>.<span style="color:#a6e22e">Items</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;Pod: %s/%s\n&#34;</span>, <span style="color:#a6e22e">pod</span>.<span style="color:#a6e22e">Namespace</span>, <span style="color:#a6e22e">pod</span>.<span style="color:#a6e22e">Name</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Continue with next pages</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">for</span> <span style="color:#a6e22e">podList</span>.<span style="color:#a6e22e">Continue</span> <span style="color:#f92672">!=</span> <span style="color:#e6db74">&#34;&#34;</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">listOptions</span>.<span style="color:#a6e22e">Continue</span> = <span style="color:#a6e22e">podList</span>.<span style="color:#a6e22e">Continue</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">podList</span>, <span style="color:#a6e22e">err</span> = <span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">CoreV1</span>().<span style="color:#a6e22e">Pods</span>(<span style="color:#e6db74">&#34;&#34;</span>).<span style="color:#a6e22e">List</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">listOptions</span>)
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">for</span> <span style="color:#a6e22e">_</span>, <span style="color:#a6e22e">pod</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">podList</span>.<span style="color:#a6e22e">Items</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;Pod: %s/%s\n&#34;</span>, <span style="color:#a6e22e">pod</span>.<span style="color:#a6e22e">Namespace</span>, <span style="color:#a6e22e">pod</span>.<span style="color:#a6e22e">Name</span>)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="watch-bookmarks">Watch Bookmarks</h2>
+<p>Watch bookmarks provide efficient watch resumption points.</p>
+<h3 id="how-bookmarks-work">How Bookmarks Work</h3>
+<div class="mermaid-diagram"><img src="/images/diagram_1cc3bbdacad513e8.svg" alt="Diagram" /></div>
+<h3 id="enabling-bookmarks">Enabling Bookmarks</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Enable bookmarks in watch options</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">watchOptions</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">ListOptions</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Watch</span>:            <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">AllowWatchBookmarks</span>: <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">watcher</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">CoreV1</span>().<span style="color:#a6e22e">Pods</span>(<span style="color:#e6db74">&#34;default&#34;</span>).<span style="color:#a6e22e">Watch</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">watchOptions</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">defer</span> <span style="color:#a6e22e">watcher</span>.<span style="color:#a6e22e">Stop</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">for</span> <span style="color:#a6e22e">event</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">watcher</span>.<span style="color:#a6e22e">ResultChan</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">switch</span> <span style="color:#a6e22e">event</span>.<span style="color:#a6e22e">Type</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">case</span> <span style="color:#a6e22e">watch</span>.<span style="color:#a6e22e">Added</span>, <span style="color:#a6e22e">watch</span>.<span style="color:#a6e22e">Modified</span>, <span style="color:#a6e22e">watch</span>.<span style="color:#a6e22e">Deleted</span>:
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">pod</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">event</span>.<span style="color:#a6e22e">Object</span>.(<span style="color:#f92672">*</span><span style="color:#a6e22e">corev1</span>.<span style="color:#a6e22e">Pod</span>)
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;Event: %s, Pod: %s\n&#34;</span>, <span style="color:#a6e22e">event</span>.<span style="color:#a6e22e">Type</span>, <span style="color:#a6e22e">pod</span>.<span style="color:#a6e22e">Name</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">case</span> <span style="color:#a6e22e">watch</span>.<span style="color:#a6e22e">Bookmark</span>:
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// Bookmark event - update resource version for efficient resumption</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">pod</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">event</span>.<span style="color:#a6e22e">Object</span>.(<span style="color:#f92672">*</span><span style="color:#a6e22e">corev1</span>.<span style="color:#a6e22e">Pod</span>)
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;Bookmark: RV=%s\n&#34;</span>, <span style="color:#a6e22e">pod</span>.<span style="color:#a6e22e">ResourceVersion</span>)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="streaming-watch-list">Streaming Watch List</h2>
+<p>Kubernetes 1.27+ supports streaming watch list for efficient initial synchronization.</p>
+<h3 id="traditional-vs-streaming">Traditional vs Streaming</h3>
+<div class="mermaid-diagram"><img src="/images/diagram_21c6d7eae0ed2283.svg" alt="Diagram" /></div>
+<h3 id="using-streaming-watch-list">Using Streaming Watch List</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Enable streaming watch list</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">watchOptions</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">ListOptions</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Watch</span>:              <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">SendInitialEvents</span>:  <span style="color:#a6e22e">ptr</span>.<span style="color:#a6e22e">To</span>(<span style="color:#66d9ef">true</span>),
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">AllowWatchBookmarks</span>: <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">watcher</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">CoreV1</span>().<span style="color:#a6e22e">Pods</span>(<span style="color:#e6db74">&#34;default&#34;</span>).<span style="color:#a6e22e">Watch</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">watchOptions</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">defer</span> <span style="color:#a6e22e">watcher</span>.<span style="color:#a6e22e">Stop</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">initialSyncComplete</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">false</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">for</span> <span style="color:#a6e22e">event</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">watcher</span>.<span style="color:#a6e22e">ResultChan</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">switch</span> <span style="color:#a6e22e">event</span>.<span style="color:#a6e22e">Type</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">case</span> <span style="color:#a6e22e">watch</span>.<span style="color:#a6e22e">Added</span>:
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">pod</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">event</span>.<span style="color:#a6e22e">Object</span>.(<span style="color:#f92672">*</span><span style="color:#a6e22e">corev1</span>.<span style="color:#a6e22e">Pod</span>)
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">initialSyncComplete</span> {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;Initial: %s\n&#34;</span>, <span style="color:#a6e22e">pod</span>.<span style="color:#a6e22e">Name</span>)
+</span></span><span style="display:flex;"><span>        } <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Printf</span>(<span style="color:#e6db74">&#34;Added: %s\n&#34;</span>, <span style="color:#a6e22e">pod</span>.<span style="color:#a6e22e">Name</span>)
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">case</span> <span style="color:#a6e22e">watch</span>.<span style="color:#a6e22e">Bookmark</span>:
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">initialSyncComplete</span> {
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">initialSyncComplete</span> = <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;Initial sync complete&#34;</span>)
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="field-selectors-and-label-selectors">Field Selectors and Label Selectors</h2>
+<h3 id="label-selectors">Label Selectors</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">import</span> <span style="color:#e6db74">&#34;k8s.io/apimachinery/pkg/labels&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Equality-based selector</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">selector</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">labels</span>.<span style="color:#a6e22e">SelectorFromSet</span>(<span style="color:#a6e22e">labels</span>.<span style="color:#a6e22e">Set</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;app&#34;</span>:         <span style="color:#e6db74">&#34;myapp&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">&#34;environment&#34;</span>: <span style="color:#e6db74">&#34;production&#34;</span>,
+</span></span><span style="display:flex;"><span>})
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">pods</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">CoreV1</span>().<span style="color:#a6e22e">Pods</span>(<span style="color:#e6db74">&#34;default&#34;</span>).<span style="color:#a6e22e">List</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">ListOptions</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">LabelSelector</span>: <span style="color:#a6e22e">selector</span>.<span style="color:#a6e22e">String</span>(),
+</span></span><span style="display:flex;"><span>})
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Set-based selector</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">requirement1</span>, <span style="color:#a6e22e">_</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">labels</span>.<span style="color:#a6e22e">NewRequirement</span>(<span style="color:#e6db74">&#34;app&#34;</span>, <span style="color:#a6e22e">selection</span>.<span style="color:#a6e22e">In</span>, []<span style="color:#66d9ef">string</span>{<span style="color:#e6db74">&#34;app1&#34;</span>, <span style="color:#e6db74">&#34;app2&#34;</span>})
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">requirement2</span>, <span style="color:#a6e22e">_</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">labels</span>.<span style="color:#a6e22e">NewRequirement</span>(<span style="color:#e6db74">&#34;tier&#34;</span>, <span style="color:#a6e22e">selection</span>.<span style="color:#a6e22e">NotIn</span>, []<span style="color:#66d9ef">string</span>{<span style="color:#e6db74">&#34;frontend&#34;</span>})
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">selector</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">labels</span>.<span style="color:#a6e22e">NewSelector</span>().<span style="color:#a6e22e">Add</span>(<span style="color:#f92672">*</span><span style="color:#a6e22e">requirement1</span>, <span style="color:#f92672">*</span><span style="color:#a6e22e">requirement2</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">pods</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">CoreV1</span>().<span style="color:#a6e22e">Pods</span>(<span style="color:#e6db74">&#34;default&#34;</span>).<span style="color:#a6e22e">List</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">ListOptions</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">LabelSelector</span>: <span style="color:#a6e22e">selector</span>.<span style="color:#a6e22e">String</span>(),
+</span></span><span style="display:flex;"><span>})
+</span></span></code></pre></div><h3 id="field-selectors">Field Selectors</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Field selector for specific fields</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">fieldSelector</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">fields</span>.<span style="color:#a6e22e">OneTermEqualSelector</span>(<span style="color:#e6db74">&#34;status.phase&#34;</span>, <span style="color:#e6db74">&#34;Running&#34;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">pods</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">CoreV1</span>().<span style="color:#a6e22e">Pods</span>(<span style="color:#e6db74">&#34;default&#34;</span>).<span style="color:#a6e22e">List</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">ListOptions</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">FieldSelector</span>: <span style="color:#a6e22e">fieldSelector</span>.<span style="color:#a6e22e">String</span>(),
+</span></span><span style="display:flex;"><span>})
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Multiple field selectors</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">fieldSelector</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">fields</span>.<span style="color:#a6e22e">AndSelectors</span>(
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">fields</span>.<span style="color:#a6e22e">OneTermEqualSelector</span>(<span style="color:#e6db74">&#34;status.phase&#34;</span>, <span style="color:#e6db74">&#34;Running&#34;</span>),
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">fields</span>.<span style="color:#a6e22e">OneTermEqualSelector</span>(<span style="color:#e6db74">&#34;spec.nodeName&#34;</span>, <span style="color:#e6db74">&#34;node-1&#34;</span>),
+</span></span><span style="display:flex;"><span>)
+</span></span></code></pre></div><h2 id="partial-object-metadata">Partial Object Metadata</h2>
+<p>Request only metadata for improved performance:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Use Table format for list operations</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">listOptions</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">ListOptions</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Request as Table</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">listOptions</span>.<span style="color:#a6e22e">SetGroupVersionKind</span>(<span style="color:#a6e22e">schema</span>.<span style="color:#a6e22e">GroupVersionKind</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Group</span>:   <span style="color:#e6db74">&#34;meta.k8s.io&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Version</span>: <span style="color:#e6db74">&#34;v1&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Kind</span>:    <span style="color:#e6db74">&#34;Table&#34;</span>,
+</span></span><span style="display:flex;"><span>})
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Or use PartialObjectMetadata</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">listOptions</span>.<span style="color:#a6e22e">SetGroupVersionKind</span>(<span style="color:#a6e22e">schema</span>.<span style="color:#a6e22e">GroupVersionKind</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Group</span>:   <span style="color:#e6db74">&#34;meta.k8s.io&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Version</span>: <span style="color:#e6db74">&#34;v1&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Kind</span>:    <span style="color:#e6db74">&#34;PartialObjectMetadata&#34;</span>,
+</span></span><span style="display:flex;"><span>})
+</span></span></code></pre></div><h2 id="best-practices">Best Practices</h2>
+<h3 id="1-use-server-side-apply-for-controllers">1. Use Server-Side Apply for Controllers</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// ✅ Good: Declarative with field ownership</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">deployment</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">appsv1ac</span>.<span style="color:#a6e22e">Deployment</span>(<span style="color:#e6db74">&#34;my-deployment&#34;</span>, <span style="color:#e6db74">&#34;default&#34;</span>).
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">WithSpec</span>(<span style="color:#a6e22e">appsv1ac</span>.<span style="color:#a6e22e">DeploymentSpec</span>().<span style="color:#a6e22e">WithReplicas</span>(<span style="color:#ae81ff">3</span>))
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">result</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">AppsV1</span>().<span style="color:#a6e22e">Deployments</span>(<span style="color:#e6db74">&#34;default&#34;</span>).
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Apply</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">deployment</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">ApplyOptions</span>{<span style="color:#a6e22e">FieldManager</span>: <span style="color:#e6db74">&#34;my-controller&#34;</span>})
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// ❌ Bad: Get-Modify-Update pattern (race conditions)</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">deployment</span>, <span style="color:#a6e22e">_</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">AppsV1</span>().<span style="color:#a6e22e">Deployments</span>(<span style="color:#e6db74">&#34;default&#34;</span>).<span style="color:#a6e22e">Get</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#e6db74">&#34;my-deployment&#34;</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">GetOptions</span>{})
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">deployment</span>.<span style="color:#a6e22e">Spec</span>.<span style="color:#a6e22e">Replicas</span> = <span style="color:#a6e22e">ptr</span>.<span style="color:#a6e22e">To</span>[<span style="color:#66d9ef">int32</span>](<span style="color:#ae81ff">3</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">result</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">AppsV1</span>().<span style="color:#a6e22e">Deployments</span>(<span style="color:#e6db74">&#34;default&#34;</span>).<span style="color:#a6e22e">Update</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">deployment</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">UpdateOptions</span>{})
+</span></span></code></pre></div><h3 id="2-use-metadata-client-for-metadata-operations">2. Use Metadata Client for Metadata Operations</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// ✅ Good: Metadata client for label updates</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">obj</span>, <span style="color:#a6e22e">_</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">metadataClient</span>.<span style="color:#a6e22e">Resource</span>(<span style="color:#a6e22e">gvr</span>).<span style="color:#a6e22e">Namespace</span>(<span style="color:#a6e22e">ns</span>).<span style="color:#a6e22e">Get</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">name</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">GetOptions</span>{})
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">obj</span>.<span style="color:#a6e22e">Labels</span>[<span style="color:#e6db74">&#34;updated&#34;</span>] = <span style="color:#e6db74">&#34;true&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">metadataClient</span>.<span style="color:#a6e22e">Resource</span>(<span style="color:#a6e22e">gvr</span>).<span style="color:#a6e22e">Namespace</span>(<span style="color:#a6e22e">ns</span>).<span style="color:#a6e22e">Update</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">obj</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">UpdateOptions</span>{})
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// ❌ Bad: Full object fetch for metadata update</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">deployment</span>, <span style="color:#a6e22e">_</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">AppsV1</span>().<span style="color:#a6e22e">Deployments</span>(<span style="color:#a6e22e">ns</span>).<span style="color:#a6e22e">Get</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">name</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">GetOptions</span>{})
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">deployment</span>.<span style="color:#a6e22e">Labels</span>[<span style="color:#e6db74">&#34;updated&#34;</span>] = <span style="color:#e6db74">&#34;true&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">AppsV1</span>().<span style="color:#a6e22e">Deployments</span>(<span style="color:#a6e22e">ns</span>).<span style="color:#a6e22e">Update</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">deployment</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">UpdateOptions</span>{})
+</span></span></code></pre></div><h3 id="3-use-paging-for-large-lists">3. Use Paging for Large Lists</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// ✅ Good: Paginated list</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">listPager</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">pager</span>.<span style="color:#a6e22e">New</span>(<span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">ctx</span> <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">Context</span>, <span style="color:#a6e22e">opts</span> <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">ListOptions</span>) (<span style="color:#a6e22e">runtime</span>.<span style="color:#a6e22e">Object</span>, <span style="color:#66d9ef">error</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">CoreV1</span>().<span style="color:#a6e22e">Pods</span>(<span style="color:#e6db74">&#34;&#34;</span>).<span style="color:#a6e22e">List</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">opts</span>)
+</span></span><span style="display:flex;"><span>})
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">listPager</span>.<span style="color:#a6e22e">PageSize</span> = <span style="color:#ae81ff">500</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">listPager</span>.<span style="color:#a6e22e">EachListItem</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">ListOptions</span>{}, <span style="color:#a6e22e">processFunc</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// ❌ Bad: Unpaginated list (memory issues with large clusters)</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">podList</span>, <span style="color:#a6e22e">_</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">clientset</span>.<span style="color:#a6e22e">CoreV1</span>().<span style="color:#a6e22e">Pods</span>(<span style="color:#e6db74">&#34;&#34;</span>).<span style="color:#a6e22e">List</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">ListOptions</span>{})
+</span></span></code></pre></div><h3 id="4-enable-watch-bookmarks">4. Enable Watch Bookmarks</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// ✅ Good: Enable bookmarks for efficient resumption</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">watchOptions</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">ListOptions</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Watch</span>:               <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">AllowWatchBookmarks</span>: <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// ❌ Bad: No bookmarks (inefficient resumption)</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">watchOptions</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">metav1</span>.<span style="color:#a6e22e">ListOptions</span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Watch</span>: <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="summary">Summary</h2>
+<p>Advanced features in <code>client-go</code> provide:</p>
+<ul>
+<li><strong>Server-Side Apply</strong>: Declarative updates with field ownership tracking</li>
+<li><strong>Metadata Client</strong>: Optimized metadata-only operations</li>
+<li><strong>Scale Subresource</strong>: Generic scaling interface</li>
+<li><strong>Paging</strong>: Efficient handling of large lists</li>
+<li><strong>Watch Bookmarks</strong>: Efficient watch resumption</li>
+<li><strong>Streaming Watch List</strong>: Combined LIST+WATCH in single stream</li>
+</ul>
+<p>These features enable building more efficient, scalable, and robust Kubernetes applications and controllers.</p>
+
+</article>
+
+            </div>
+            
+            <footer class="content-footer">
+                <p>&copy; 2026 The Kubernetes Authors | <a href="https://www.apache.org/licenses/LICENSE-2.0">Apache License 2.0</a></p>
+            </footer>
+        </main>
+    </div>
+
+    <script src="/js/main.js"></script>
+</body>
+</html>

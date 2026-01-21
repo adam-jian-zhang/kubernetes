@@ -1,0 +1,37 @@
+graph TB
+    subgraph "Codec Factory"
+        CodecFactory[CodecFactory]
+        Options[CodecFactoryOptions]
+    end
+    
+    subgraph "Serializers"
+        JSON[JSON Serializer]
+        YAML[YAML Serializer]
+        Protobuf[Protobuf Serializer]
+        CBOR[CBOR Serializer]
+    end
+    
+    subgraph "Features"
+        Versioning[Versioning Codec]
+        Streaming[Streaming]
+        Recognizer[Format Recognizer]
+        Framing[Framing]
+    end
+    
+    CodecFactory --> JSON
+    CodecFactory --> YAML
+    CodecFactory --> Protobuf
+    CodecFactory --> CBOR
+    
+    JSON --> Versioning
+    YAML --> Versioning
+    Protobuf --> Versioning
+    
+    JSON --> Streaming
+    Protobuf --> Streaming
+    
+    Streaming --> Framing
+    
+    style CodecFactory fill:#e1f5ff
+    style JSON fill:#fff4e1
+    style Versioning fill:#f0ffe1

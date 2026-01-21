@@ -1,0 +1,35 @@
+graph TB
+    subgraph "Control Flow"
+        Wait[wait<br/>Polling & Retry]
+        Errors[errors<br/>Error Aggregation]
+    end
+    
+    subgraph "Data Structures"
+        Sets[sets<br/>Set Collections]
+        IntStr[intstr<br/>Int or String]
+        Cache[cache<br/>Caching]
+    end
+    
+    subgraph "Patching"
+        JSONPatch[json<br/>JSON Utilities]
+        MergePatch[mergepatch<br/>JSON Merge Patch]
+        StrategicPatch[strategicpatch<br/>Strategic Merge Patch]
+        ManagedFields[managedfields<br/>Server-Side Apply]
+    end
+    
+    subgraph "Networking"
+        Net[net<br/>Network Utilities]
+        HTTPStream[httpstream<br/>HTTP Streaming]
+        Proxy[proxy<br/>HTTP Proxy]
+    end
+    
+    subgraph "Other"
+        Validation[validation<br/>Validation]
+        YAML[yaml<br/>YAML Utilities]
+        Diff[diff<br/>Object Diffing]
+        Version[version<br/>Version Comparison]
+    end
+    
+    style Wait fill:#e1f5ff
+    style Sets fill:#fff4e1
+    style StrategicPatch fill:#f0ffe1

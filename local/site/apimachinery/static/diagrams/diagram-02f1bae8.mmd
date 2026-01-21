@@ -1,0 +1,39 @@
+graph TB
+    subgraph "Metadata Access"
+        Accessor[Accessor Functions]
+        MetadataAccessor[MetadataAccessor Interface]
+        ObjectMeta[ObjectMeta]
+        ListMeta[ListMeta]
+    end
+    
+    subgraph "REST Mapping"
+        RESTMapper[RESTMapper Interface]
+        DefaultRESTMapper[DefaultRESTMapper]
+        MultiRESTMapper[MultiRESTMapper]
+        FirstHitRESTMapper[FirstHitRESTMapper]
+        PriorityRESTMapper[PriorityRESTMapper]
+    end
+    
+    subgraph "Type System"
+        GVK[GroupVersionKind]
+        GVR[GroupVersionResource]
+        RESTMapping[RESTMapping]
+        RESTScope[RESTScope]
+    end
+    
+    subgraph "Conditions"
+        Condition[Condition Type]
+        ConditionHelpers[Condition Helpers]
+    end
+    
+    Accessor --> ObjectMeta
+    Accessor --> ListMeta
+    RESTMapper --> GVK
+    RESTMapper --> GVR
+    RESTMapper --> RESTMapping
+    RESTMapping --> RESTScope
+    
+    style RESTMapper fill:#e1f5ff
+    style Accessor fill:#fff4e1
+    style GVK fill:#f0ffe1
+    style GVR fill:#f0ffe1

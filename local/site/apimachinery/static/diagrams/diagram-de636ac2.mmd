@@ -1,0 +1,37 @@
+graph TB
+    subgraph "Labels Package"
+        LabelSelector[Selector Interface]
+        LabelRequirement[Requirement]
+        LabelSet[Set Type]
+        LabelParser[Parser]
+    end
+    
+    subgraph "Fields Package"
+        FieldSelector[Selector Interface]
+        FieldSet[Set Type]
+        FieldParser[Parser]
+    end
+    
+    subgraph "Selection Operators"
+        Operators[Operator Types]
+        Equals[Equals/DoubleEquals]
+        NotEquals[NotEquals]
+        In[In]
+        NotIn[NotIn]
+        Exists[Exists]
+        DoesNotExist[DoesNotExist]
+        GreaterThan[GreaterThan]
+        LessThan[LessThan]
+    end
+    
+    LabelSelector --> LabelRequirement
+    LabelRequirement --> Operators
+    LabelSelector --> LabelSet
+    LabelParser --> LabelSelector
+    
+    FieldSelector --> FieldSet
+    FieldParser --> FieldSelector
+    
+    style LabelSelector fill:#e1f5ff
+    style FieldSelector fill:#fff4e1
+    style Operators fill:#f0ffe1

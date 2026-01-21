@@ -1,0 +1,9 @@
+graph TB
+    Watch[Watch Interface] --> Reflector[Reflector]
+    Reflector --> Store[Store/Cache]
+    Store --> Informer[Informer]
+    Informer --> EventHandler[Event Handlers]
+    
+    style Watch fill:#e1f5ff
+    style Reflector fill:#fff4e1
+    style Informer fill:#f0ffe1

@@ -1,0 +1,18 @@
+sequenceDiagram
+    participant Client
+    participant Codec
+    participant Serializer
+    participant Scheme
+    participant Defaulter
+    participant Converter
+    
+    Client->>Codec: Decode(data)
+    Codec->>Serializer: Decode(data)
+    Serializer-->>Codec: Object + GVK
+    Codec->>Defaulter: Default(object)
+    Defaulter-->>Codec: Defaulted object
+    Codec->>Converter: ConvertToVersion(object, targetGV)
+    Converter->>Scheme: Get conversion functions
+    Scheme-->>Converter: Conversion funcs
+    Converter-->>Codec: Converted object
+    Codec-->>Client: Decoded object

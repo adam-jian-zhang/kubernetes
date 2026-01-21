@@ -1,0 +1,15 @@
+*
+!public/
+.git
+.gitignore
+node_modules
+content
+themes
+static
+layouts
+archetypes
+hugo.toml
+*.md
+*.py
+*.js
+

@@ -1,0 +1,13 @@
+graph LR
+    Runtime[runtime.Object] --> Accessor[meta.Accessor]
+    Accessor --> Metadata[Object Metadata]
+    
+    Scheme[runtime.Scheme] --> RESTMapper[meta.RESTMapper]
+    RESTMapper --> GVK[GroupVersionKind]
+    RESTMapper --> GVR[GroupVersionResource]
+    
+    GVK --> Mapping[RESTMapping]
+    GVR --> Mapping
+    
+    style Runtime fill:#e1f5ff
+    style RESTMapper fill:#fff4e1

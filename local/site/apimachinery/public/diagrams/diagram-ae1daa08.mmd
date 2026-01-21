@@ -1,0 +1,15 @@
+graph TD
+    GVK[GroupVersionKind] --> Group[Group<br/>e.g., apps]
+    GVK --> Version[Version<br/>e.g., v1]
+    GVK --> Kind[Kind<br/>e.g., Deployment]
+    
+    GVR[GroupVersionResource] --> GroupR[Group<br/>e.g., apps]
+    GVR --> VersionR[Version<br/>e.g., v1]
+    GVR --> Resource[Resource<br/>e.g., deployments]
+    
+    RESTMapper[RESTMapper] --> GVK
+    RESTMapper --> GVR
+    
+    style GVK fill:#e1f5ff
+    style GVR fill:#fff4e1
+    style RESTMapper fill:#f0ffe1

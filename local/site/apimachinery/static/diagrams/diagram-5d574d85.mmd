@@ -1,0 +1,16 @@
+sequenceDiagram
+    participant Source
+    participant Broadcaster
+    participant Watcher1
+    participant Watcher2
+    participant Watcher3
+    
+    Source->>Broadcaster: Action(Added, pod)
+    Broadcaster->>Watcher1: Event{Added, pod}
+    Broadcaster->>Watcher2: Event{Added, pod}
+    Broadcaster->>Watcher3: Event{Added, pod}
+    
+    Source->>Broadcaster: Action(Modified, pod)
+    Broadcaster->>Watcher1: Event{Modified, pod}
+    Broadcaster->>Watcher2: Event{Modified, pod}
+    Broadcaster->>Watcher3: Event{Modified, pod}
